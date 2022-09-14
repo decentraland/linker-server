@@ -1,6 +1,6 @@
 import 'dotenv/config'
 import express from 'express'
-import fetch from 'node-fetch'
+import { fetch } from 'undici'
 import multer from 'multer'
 import { readFile } from 'fs/promises'
 import cors from 'cors'
@@ -13,7 +13,8 @@ import { verifyMessage } from '@ethersproject/wallet'
 import { Wallet } from '@ethersproject/wallet'
 import { SecretsManagerClient, GetSecretValueCommand } from '@aws-sdk/client-secrets-manager'
 
-let wallet = new Wallet('01')
+let wallet = new Wallet('0x0000000000000000000000000000000000000000000000000000000000000001')
+
 
 let db: { [address: string]: string[] } = {}
 
