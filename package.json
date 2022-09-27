@@ -10,7 +10,7 @@
   "dependencies": {
     "@aws-sdk/client-secrets-manager": "^3.171.0",
     "cors": "^2.8.5",
-    "dcl-catalyst-client": "^13.0.3",
+    "dcl-catalyst-client": "^13.0.7",
     "dcl-catalyst-commons": "^9.0.10",
     "dcl-crypto": "^2.3.0",
     "dotenv": "^16.0.2",
