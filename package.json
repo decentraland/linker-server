@@ -30,7 +30,7 @@
     "@types/form-data": "^2.5.0",
     "@types/multer": "^1.4.7",
     "@types/node": "^18.7.18",
-    "eslint": "^8.23.1"
+    "eslint": "^8.25.0"
   },
   "prettier": {
     "printWidth": 120
