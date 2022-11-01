@@ -15,7 +15,6 @@ import { SecretsManagerClient, GetSecretValueCommand } from '@aws-sdk/client-sec
 
 let wallet = new Wallet('0x0000000000000000000000000000000000000000000000000000000000000001')
 
-
 let db: { [address: string]: string[] } = {}
 
 const PORT = 3000
@@ -58,7 +57,7 @@ app.post('/content/entities', upload.any(), async (req, res) => {
   const authSigner = auth.find((a) => a.type === 'SIGNER')
   if (!authSigner) return res.status(403).send('No AuthChain SIGNER')
 
-  const dbSigner = db[authSigner.payload]
+  const dbSigner = db[authSigner.payload.toLowerCase()]
   if (!dbSigner) return res.status(403).send('Address not found')
 
   const authSignedEntity = auth.find((a) => a.type === 'ECDSA_SIGNED_ENTITY')
@@ -115,6 +114,7 @@ async function main() {
   const response = await SMClient.send(command)
   const json = JSON.parse(response.SecretString!)
   wallet = new Wallet(json.private_key)
+
   await updateDB()
 
   app.listen(PORT, () => {
