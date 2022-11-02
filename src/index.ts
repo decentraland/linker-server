@@ -69,7 +69,7 @@ app.post('/content/entities', upload.any(), async (req, res) => {
   if (address.toString().toLowerCase() != authSigner.payload.toLowerCase())
     return res.status(403).send("Address don't match")
   console.log(address.toString())
-  console.log(req)
+//  console.log(req)
 
   const entityFile = JSON.parse(JSON.stringify(req.files)).find((a: any) => a.originalname == req.body.entityId)
   const entity = await readFile(entityFile.path).then((r) => JSON.parse(r.toString()))
@@ -94,13 +94,13 @@ app.post('/content/entities', upload.any(), async (req, res) => {
   }
 
   try {
-    const { creationTimestamp } = (await postForm(`https://${process.env.CATALYST_DOMAIN!}/content/entities`, {
+    const ret = (await postForm(`https://${process.env.CATALYST_DOMAIN!}/content/entities`, {
       body: form as any,
       headers: { 'x-upload-origin': 'dcl_linker' },
       timeout: '10m'
     })) as any
-    console.log({ creationTimestamp })
-    res.send({ creationTimestamp })
+    console.log(ret)
+    res.send(ret).end()
   } catch (error: any) {
     console.log(error)
 
