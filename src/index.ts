@@ -69,7 +69,6 @@ app.post('/content/entities', upload.any(), async (req, res) => {
   if (address.toString().toLowerCase() != authSigner.payload.toLowerCase())
     return res.status(403).send("Address don't match")
   console.log(address.toString())
-//  console.log(req)
 
   const entityFile = JSON.parse(JSON.stringify(req.files)).find((a: any) => a.originalname == req.body.entityId)
   const entity = await readFile(entityFile.path).then((r) => JSON.parse(r.toString()))
@@ -126,10 +125,57 @@ void main()
 
 async function updateDB() {
   try {
-    const res = await fetch('https://decentraland.github.io/linker-server-authorizations/db.json')
+    const res = await fetch('https://decentraland.github.io/linker-server-authorizations/authorizations.json')
     const json = await res.json()
-    db = json as any
+    db = convertAuthorizationsToList(json as any)
   } catch (error) {}
 }
 
 setInterval(updateDB, 10 * 60 * 1000)
+
+function validatePlot(plot: string): boolean {
+  const split = plot.split(',')
+  if (split.length != 2) return false
+  const x = +split[0]
+  const y = +split[1]
+  if (isNaN(x) || isNaN(y)) return false
+  if (x < -200 || x > 200 || y < -200 || y > 200) return false
+  return true
+}
+
+function convertAuthorizationsToList(authorizations: Authorizations): AuthorizationsList {
+  const list: AuthorizationsList = {}
+
+  for (const authorization of authorizations) {
+    if (authorization.startDate && +new Date(authorization.startDate) < +new Date()) continue
+    if (authorization.endDate && +new Date(authorization.endDate) > +new Date()) continue
+
+    for (const address of authorization.addresses) {
+      const add = address.toLowerCase()
+      if (!list[add]) list[add] = []
+      for (const plot of authorization.plots) {
+        if (validatePlot(plot)) list[add].push(plot)
+      }
+    }
+  }
+
+  return list
+}
+
+interface Authorization {
+  name: string
+  desc: string
+  startDate?: number
+  endDate?: number
+  contactInfo: {
+    name: string
+    [key: string]: string
+  }
+  addresses: string[]
+  plots: string[]
+}
+type Authorizations = Authorization[]
+
+type AuthorizationsList = {
+  [address: string]: string[]
+}
