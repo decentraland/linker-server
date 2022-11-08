@@ -8,7 +8,7 @@
     "start": "node dist/index.js"
   },
   "dependencies": {
-    "@aws-sdk/client-secrets-manager": "^3.200.0",
+    "@aws-sdk/client-secrets-manager": "^3.204.0",
     "cors": "^2.8.5",
     "dcl-catalyst-client": "^13.0.13",
     "dcl-catalyst-commons": "^9.0.13",
