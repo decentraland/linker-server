@@ -93,11 +93,12 @@ app.post('/content/entities', upload.any(), async (req, res) => {
   }
 
   try {
-    const ret = (await postForm(`https://${process.env.CATALYST_DOMAIN!}/content/entities`, {
+    res.setHeader('X-Content-Length', 10)
+    const ret = await postForm(`https://${process.env.CATALYST_DOMAIN!}/content/entities`, {
       body: form as any,
       headers: { 'x-upload-origin': 'dcl_linker' },
       timeout: '10m'
-    })) as any
+    })
     console.log(ret)
     res.send(ret).end()
   } catch (error: any) {
