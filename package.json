@@ -18,7 +18,7 @@
     "express": "^4.18.2",
     "form-data": "^4.0.0",
     "multer": "^1.4.2",
-    "typescript": "^4.9.3",
+    "typescript": "^4.9.4",
     "undici": "^5.13.0"
   },
   "devDependencies": {
