@@ -35,6 +35,35 @@ app.get('/health/live', async (req, res) => {
   res.status(200).send('alive')
 })
 
+app.get('/about', async (req, res) => {
+  const url = req.baseUrl
+
+  res.status(200).json({
+    acceptingUsers: true,
+    bff: { healthy: false, publicUrl: `${url}/bff` },
+    comms: {
+      healthy: true,
+      protocol: 'v3',
+      fixedAdapter: `offline:offline`
+    },
+    configurations: {
+      networkId: 0,
+      globalScenesUrn: [],
+      scenesUrn: [],
+      realmName: 'LinkerServer'
+    },
+    content: {
+      healthy: true,
+      publicUrl: `${url}/content`
+    },
+    lambdas: {
+      healthy: true,
+      publicUrl: `${url}/lambdas`
+    },
+    healthy: true
+  })
+})
+
 app.get('/content/available-content', async (req, res) => {
   console.log('/content/available-content')
   console.log(req.url)
