@@ -36,7 +36,7 @@ app.get('/health/live', async (req, res) => {
 })
 
 app.get('/about', async (req, res) => {
-  const url = req.baseUrl
+  const url = req.hostname
 
   res.status(200).json({
     acceptingUsers: true,
