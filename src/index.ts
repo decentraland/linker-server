@@ -93,17 +93,18 @@ app.post('/content/entities', upload.any(), async (req, res) => {
   if (!authSignedEntity) return res.status(403).send('No signature')
 
   const address = verifyMessage(authSignedEntity.payload, authSignedEntity.signature)
-  console.log(address.toString(), authSigner.payload)
 
   if (address.toString().toLowerCase() != authSigner.payload.toLowerCase())
     return res.status(403).send("Address don't match")
-  console.log(address.toString())
 
   const entityFile = JSON.parse(JSON.stringify(req.files)).find((a: any) => a.originalname == req.body.entityId)
   const entity = await readFile(entityFile.path).then((r) => JSON.parse(r.toString()))
 
-  for (const pointer of entity.pointers) {
-    if (dbSigner.indexOf(pointer) == -1) return res.status(403).send("You don't have access to this land")
+  const missingAccess = entity.pointers.filter((pointer: string) => dbSigner.indexOf(pointer) == -1)
+  if (missingAccess.length > 0) {
+    console.log('Missing access to:')
+    console.log(JSON.stringify(missingAccess))
+    return res.status(403).send(`Missing access for ${missingAccess.length} parcels:\n${missingAccess.join('; ')}`)
   }
 
   //Authenticator.validateSignature(req.body.entityId, ), provider);
