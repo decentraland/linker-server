@@ -178,8 +178,8 @@ function convertAuthorizationsToList(authorizations: Authorizations): Authorizat
   const list: AuthorizationsList = {}
 
   for (const authorization of authorizations) {
-    if (authorization.startDate && +new Date(authorization.startDate) < +new Date()) continue
-    if (authorization.endDate && +new Date(authorization.endDate) > +new Date()) continue
+    if (authorization.startDate && +new Date(authorization.startDate) > +new Date()) continue
+    if (authorization.endDate && +new Date(authorization.endDate) < +new Date()) continue
 
     for (const address of authorization.addresses) {
       const add = address.toLowerCase()
