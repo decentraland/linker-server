@@ -66,7 +66,6 @@ app.get('/about', async (req, res) => {
 
 app.get('/content/available-content', async (req, res) => {
   console.log('/content/available-content')
-  console.log(req.url)
 
   const response = await fetch(`https://${process.env.CATALYST_DOMAIN!}/` + req.url)
   const text = await response.text()
