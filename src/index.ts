@@ -79,6 +79,7 @@ app.get('/content/available-content', async (req, res) => {
 
 app.post('/content/entities', upload.any(), async (req, res) => {
   console.log('/content/entities')
+  console.log(req.url)
 
   const auth: { type: string; payload: string; signature: string }[] = JSON.parse(JSON.stringify(req.body.authChain))
 
