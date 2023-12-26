@@ -14,7 +14,6 @@ import { Wallet } from '@ethersproject/wallet'
 import { SecretsManagerClient, GetSecretValueCommand } from '@aws-sdk/client-secrets-manager'
 
 let wallet = new Wallet('0x0000000000000000000000000000000000000000000000000000000000000001')
-
 let db: { [address: string]: string[] } = {}
 
 const PORT = 3000
