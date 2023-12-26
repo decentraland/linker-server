@@ -15,7 +15,6 @@ import { SecretsManagerClient, GetSecretValueCommand } from '@aws-sdk/client-sec
 
 let wallet = new Wallet('0x0000000000000000000000000000000000000000000000000000000000000001')
 let db: { [address: string]: string[] } = {}
-
 const PORT = 3000
 
 const upload = multer({ dest: 'distFiles/', preservePath: true })
