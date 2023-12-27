@@ -1,5 +1,6 @@
 import 'dotenv/config'
 import express from 'express'
+import { LinkerAuthorization } from '@dcl/schemas'
 import { fetch } from 'undici'
 import multer from 'multer'
 import { readFile } from 'fs/promises'
@@ -161,7 +162,7 @@ async function updateDB() {
     const json = await res.json()
     console.log('Updating authorizations data - Fetched')
     db = convertAuthorizationsToList(json as any)
-    console.log('Updating authorizations data - Converted data', db)
+    console.log('Updating authorizations data - Addresses', Object.keys(db))
   } catch (error) {
     console.log('Error', error)
   }
@@ -198,19 +199,7 @@ function convertAuthorizationsToList(authorizations: Authorizations): Authorizat
   return list
 }
 
-interface Authorization {
-  name: string
-  desc: string
-  startDate?: number
-  endDate?: number
-  contactInfo: {
-    name: string
-    [key: string]: string
-  }
-  addresses: string[]
-  plots: string[]
-}
-type Authorizations = Authorization[]
+type Authorizations = LinkerAuthorization[]
 
 type AuthorizationsList = {
   [address: string]: string[]
