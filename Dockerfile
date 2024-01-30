@@ -11,7 +11,7 @@ RUN apt-get -y -qq install python3-setuptools python3-dev build-essential
 # install dependencies
 COPY package.json /app/package.json
 COPY package-lock.json /app/package-lock.json
-RUN npm ci
+RUN npm install
 
 # build the app
 COPY . /app
