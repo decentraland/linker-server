@@ -19,7 +19,7 @@ RUN npm run build
 #RUN npm run test
 
 # remove devDependencies, keep only used dependencies
-RUN npm ci --only=production
+RUN npm install --only=production
 
 # build the release app
 FROM node:18
