@@ -1,5 +1,3 @@
-
-
 name: CI/CD on main branch
 
 on:
@@ -12,7 +10,7 @@ jobs:
     uses: decentraland/actions/.github/workflows/build-quay-main.yml@main
     with:
       service-name: linker-server
-      deployment-environment: prd stg
+      deployment-environment: dev stg
     secrets:
       QUAY_USERNAME: ${{ secrets.QUAY_USERNAME }}
       QUAY_TOKEN: ${{ secrets.QUAY_TOKEN }}
