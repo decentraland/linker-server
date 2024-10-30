@@ -15,6 +15,7 @@ import { Wallet } from '@ethersproject/wallet'
 import { SecretsManagerClient, GetSecretValueCommand } from '@aws-sdk/client-secrets-manager'
 
 let wallet = new Wallet('0x0000000000000000000000000000000000000000000000000000000000000001')
+const ENVIRONMENT = process.env.ENVIRONMENT || 'stg'
 let db: { [address: string]: string[] } = {}
 const PORT = 3000
 
@@ -177,6 +178,8 @@ function convertAuthorizationsToList(authorizations: Authorizations): Authorizat
   for (const authorization of authorizations) {
     if (authorization.startDate && +new Date(authorization.startDate) > +new Date()) continue
     if (authorization.endDate && +new Date(authorization.endDate) < +new Date()) continue
+
+    if (authorization.onlyDev && ENVIRONMENT === 'prd') continue
 
     for (const address of authorization.addresses) {
       const add = address.toLowerCase()
