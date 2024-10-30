@@ -18,3 +18,5 @@ The process goes as follows:
 2. The user signs the entity related to the scene that they want to deploy.
 3. The linker server will check that the signed entity belongs to an authorized wallet and that this wallet can deploy scenes to the coordinates it needs to.
 4. The linker server will re-sign the entities using a secret wallet with permissions and publish it to the Catalyst.
+
+The service will deploy the scenes in different Catalysts depending on the environment they're in.
