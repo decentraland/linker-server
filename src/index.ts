@@ -106,6 +106,11 @@ app.post('/content/entities', upload.any(), async (req, res, done) => {
     const address = verifyMessage(authSignedEntity.payload, authSignedEntity.signature)
 
     if (address.toString().toLowerCase() != signerAddress.toLowerCase()) {
+      console.log(
+        'Deployed entity could not get validated: addresses do not match',
+        address.toString().toLowerCase(),
+        signerAddress.toLowerCase()
+      )
       return res.status(403).send("Address don't match")
     }
 
@@ -178,7 +183,6 @@ function convertAuthorizationsToList(authorizations: Authorizations): Authorizat
   for (const authorization of authorizations) {
     if (authorization.startDate && +new Date(authorization.startDate) > +new Date()) continue
     if (authorization.endDate && +new Date(authorization.endDate) < +new Date()) continue
-
     if (authorization.onlyDev && ENVIRONMENT === 'prd') continue
 
     for (const address of authorization.addresses) {
@@ -200,11 +204,11 @@ type AuthorizationsList = {
 }
 
 async function main() {
-  const SMClient = new SecretsManagerClient({ region: 'us-east-1' })
-  const command = new GetSecretValueCommand({ SecretId: 'linker-server' })
-  const response = await SMClient.send(command)
-  const json = JSON.parse(response.SecretString!)
-  wallet = new Wallet(json.private_key)
+  // const SMClient = new SecretsManagerClient({ region: 'us-east-1' })
+  // const command = new GetSecretValueCommand({ SecretId: 'linker-server' })
+  // const response = await SMClient.send(command)
+  // const json = JSON.parse(response.SecretString!)
+  // wallet = new Wallet(json.private_key)
 
   await updateDB()
 
