@@ -204,11 +204,11 @@ type AuthorizationsList = {
 }
 
 async function main() {
-  // const SMClient = new SecretsManagerClient({ region: 'us-east-1' })
-  // const command = new GetSecretValueCommand({ SecretId: 'linker-server' })
-  // const response = await SMClient.send(command)
-  // const json = JSON.parse(response.SecretString!)
-  // wallet = new Wallet(json.private_key)
+  const SMClient = new SecretsManagerClient({ region: 'us-east-1' })
+  const command = new GetSecretValueCommand({ SecretId: 'linker-server' })
+  const response = await SMClient.send(command)
+  const json = JSON.parse(response.SecretString!)
+  wallet = new Wallet(json.private_key)
 
   await updateDB()
 
