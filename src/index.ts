@@ -10,12 +10,12 @@ import FormData from 'form-data'
 
 import { addModelToFormData } from 'dcl-catalyst-client'
 import { postForm } from 'dcl-catalyst-commons'
-import { verifyMessage } from '@ethersproject/wallet'
 import { Wallet } from '@ethersproject/wallet'
 import { SecretsManagerClient, GetSecretValueCommand } from '@aws-sdk/client-secrets-manager'
 
 let wallet = new Wallet('0x0000000000000000000000000000000000000000000000000000000000000001')
 const ENVIRONMENT = process.env.ENVIRONMENT || 'stg'
+const CATALYST_DOMAIN = process.env.CATALYST_DOMAIN || 'peer-testing.decentraland.org'
 let db: { [address: string]: string[] } = {}
 const PORT = 3000
 
@@ -74,7 +74,7 @@ app.get('/about', (req, res) => {
 
 app.get('/content/available-content', async (req, res, next) => {
   try {
-    const response = await fetch(`https://${process.env.CATALYST_DOMAIN!}/` + req.url)
+    const response = await fetch(`https://${CATALYST_DOMAIN}/` + req.url)
     const text = await response.text()
     for (const header of response.headers) {
       if (header[0].startsWith('content-type')) res.setHeader(header[0], header[1])
@@ -88,31 +88,23 @@ app.get('/content/available-content', async (req, res, next) => {
 
 app.post('/content/entities', upload.any(), async (req, res, done) => {
   try {
-    console.log('/content/entities')
+    console.log('POST: /content/entities')
     const auth: AuthChain = JSON.parse(JSON.stringify(req.body.authChain))
-
-    if (!Authenticator.isValidAuthChain(auth)) {
-      return res.status(403).json({ message: 'No AuthChain SIGNER' })
-    }
-    const signerAddress = Authenticator.ownerAddress(auth)
-    const dbSigner = db[signerAddress.toLowerCase()]
-    console.log('/content/entities -> Singer found in authorizations list?', signerAddress)
-
-    if (!dbSigner) return res.status(403).send('Address not found')
 
     const authSignedEntity = auth.find((a) => a.type === 'ECDSA_SIGNED_ENTITY')
     if (!authSignedEntity?.signature) return res.status(403).send('No signature')
 
-    const address = verifyMessage(authSignedEntity.payload, authSignedEntity.signature)
+    const validationResult = await Authenticator.validateSignature(authSignedEntity.payload, auth, null as any)
 
-    if (address.toString().toLowerCase() != signerAddress.toLowerCase()) {
-      console.log(
-        'Deployed entity could not get validated: addresses do not match',
-        address.toString().toLowerCase(),
-        signerAddress.toLowerCase()
-      )
-      return res.status(403).send("Address don't match")
+    if (!validationResult.ok) {
+      return res.status(403).send('Invalid auth chain')
     }
+
+    const signerAddress = Authenticator.ownerAddress(auth)
+    const dbSigner = db[signerAddress.toLowerCase()]
+    console.log('Singer found in authorizations list?', signerAddress)
+
+    if (!dbSigner) return res.status(403).send('Address not found')
 
     const entityFile = JSON.parse(JSON.stringify(req.files)).find((a: any) => a.originalname == req.body.entityId)
     const entity = await readFile(entityFile.path).then((r) => JSON.parse(r.toString()))
@@ -138,7 +130,7 @@ app.post('/content/entities', upload.any(), async (req, res, done) => {
     }
 
     res.setHeader('X-Extend-CF-Timeout', 10)
-    const ret = await postForm(`https://${process.env.CATALYST_DOMAIN!}/content/entities`, {
+    const ret = await postForm(`https://${CATALYST_DOMAIN}/content/entities`, {
       body: form as any,
       headers: { 'x-upload-origin': 'dcl_linker' },
       timeout: '10m'
