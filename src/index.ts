@@ -7,7 +7,7 @@ import multer from 'multer'
 import { readFile } from 'fs/promises'
 import cors from 'cors'
 import FormData from 'form-data'
-
+import { CatalystHttpError } from './util/CatalystHttpError'
 import { addModelToFormData } from 'dcl-catalyst-client'
 import { postForm } from 'dcl-catalyst-commons'
 import { Wallet } from '@ethersproject/wallet'
@@ -27,10 +27,12 @@ app.use(express.json() as any)
 
 function errorHandler(error: unknown, _req: Request, res: Response, next: NextFunction) {
   console.error('Errored', error)
-  if (res.headersSent) {
-    return next(error)
-  }
-  res.status(500).json({ message: error })
+  if (res.headersSent) return next(error)
+
+  const catalyst = CatalystHttpError.fromUnknown(error)
+  if (catalyst) return res.status(catalyst.status).json({ message: catalyst.message })
+
+  return res.status(500).json({ message: error })
 }
 
 app.get('/health/ready', (_req, res) => {
@@ -130,11 +132,19 @@ app.post('/content/entities', upload.any(), async (req, res, done) => {
     }
 
     res.setHeader('X-Extend-CF-Timeout', 10)
-    const ret = await postForm(`https://${CATALYST_DOMAIN}/content/entities`, {
-      body: form as any,
-      headers: { 'x-upload-origin': 'dcl_linker' },
-      timeout: '10m'
-    })
+    let ret: any
+    try {
+      ret = await postForm(`https://${CATALYST_DOMAIN}/content/entities`, {
+        body: form as any,
+        headers: { 'x-upload-origin': 'dcl_linker' },
+        timeout: '10m'
+      })
+    } catch (e) {
+      // Convert known Catalyst error message into a structured HttpError
+      const parsed = CatalystHttpError.fromUnknown(e)
+      if (parsed) throw parsed
+      throw e
+    }
     console.log('Catalyst post response', ret)
     res.send(ret).end()
   } catch (error: any) {
