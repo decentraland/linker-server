@@ -21,7 +21,7 @@ The process goes as follows:
 
 The service will deploy the scenes in different Catalysts depending on the environment they're in.
 
-## 🤖 AI Agent Context
+## AI Agent Context
 
 **Service Purpose:** Enables authorized users to deploy scenes to Decentraland Foundation-owned lands without requiring contract ownership or manager permissions. Acts as a proxy Catalyst that validates authorizations and re-signs entities with a privileged wallet.
 
