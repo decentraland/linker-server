@@ -1,0 +1,338 @@
+openapi: 3.1.0
+info:
+  title: Linker Server API
+  description: |
+    The Linker Server enables authorized users to deploy scenes to Decentraland Foundation-owned lands 
+    without requiring contract ownership or manager permissions. It acts as a proxy Catalyst that validates 
+    authorizations and re-signs entities with a privileged wallet.
+
+    ## Authorization Flow
+
+    1. User signs an entity via Linked dApp UI
+    2. User deploys to linker server (specified as Catalyst endpoint)
+    3. Server validates: wallet is authorized AND coordinates match authorized plots
+    4. Server re-signs entity with privileged wallet
+    5. Server publishes to Foundation Catalyst nodes
+  version: 1.0.0
+  contact:
+    name: Decentraland
+    url: https://decentraland.org
+  license:
+    name: MIT
+    identifier: MIT
+
+servers:
+  - url: https://linker.decentraland.org
+    description: Production server
+  - url: https://linker.decentraland.zone
+    description: Staging server
+
+tags:
+  - name: Health
+    description: Health check endpoints for service monitoring
+  - name: Catalyst
+    description: Catalyst-compatible endpoints for scene deployment
+  - name: Content
+    description: Content management and entity deployment
+
+paths:
+  /health/ready:
+    get:
+      tags:
+        - Health
+      summary: GET /health/ready
+      description: Checks if the service is ready to accept requests.
+      operationId: linkerServer_getHealthReady
+      responses:
+        "200":
+          description: Service is ready
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: ready
+
+  /health/startup:
+    get:
+      tags:
+        - Health
+      summary: GET /health/startup
+      description: Checks if the service has started successfully.
+      operationId: linkerServer_getHealthStartup
+      responses:
+        "200":
+          description: Service has started
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "[server] ok"
+
+  /health/live:
+    get:
+      tags:
+        - Health
+      summary: GET /health/live
+      description: Checks if the service is alive and running.
+      operationId: linkerServer_getHealthLive
+      responses:
+        "200":
+          description: Service is alive
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: alive
+
+  /about:
+    get:
+      tags:
+        - Catalyst
+      summary: GET /about
+      description: |
+        Returns information about this Catalyst-compatible server.
+        This endpoint mimics the Catalyst `/about` endpoint to allow clients
+        to discover server capabilities.
+      operationId: linkerServer_getAbout
+      responses:
+        "200":
+          description: Server information
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AboutResponse"
+
+  /content/available-content:
+    get:
+      tags:
+        - Content
+      summary: GET /content/available-content
+      description: |
+        Proxies the available-content request to the configured Catalyst.
+        Returns content availability information from the upstream Catalyst server.
+      operationId: linkerServer_getAvailableContent
+      parameters:
+        - name: cid
+          in: query
+          description: Content identifier(s) to check availability for
+          required: false
+          schema:
+            type: array
+            items:
+              type: string
+      responses:
+        "200":
+          description: Content availability information
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ContentAvailability"
+        "500":
+          description: Upstream Catalyst error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /content/entities:
+    post:
+      tags:
+        - Content
+      summary: POST /content/entities
+      description: |
+        Deploys a scene entity to Decentraland Foundation lands.
+
+        This endpoint:
+        1. Validates the signature in the auth chain
+        2. Verifies the signer address is in the authorized wallets list
+        3. Checks that all target parcels are authorized for the signer
+        4. Re-signs the entity with the Foundation's privileged wallet
+        5. Publishes to the configured Catalyst server
+      operationId: linkerServer_postContentEntities
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - entityId
+                - authChain
+              properties:
+                entityId:
+                  type: string
+                  description: The entity ID (content hash) of the deployment
+                authChain:
+                  type: array
+                  description: Authentication chain proving ownership of the deployment
+                  items:
+                    $ref: "#/components/schemas/AuthChainLink"
+                files:
+                  type: array
+                  description: Entity files including the entity JSON and content files
+                  items:
+                    type: string
+                    format: binary
+      responses:
+        "200":
+          description: Entity deployed successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeploymentResponse"
+        "403":
+          description: Authorization failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                noSignature:
+                  summary: Missing signature
+                  value:
+                    message: No signature
+                invalidAuthChain:
+                  summary: Invalid auth chain
+                  value:
+                    message: Invalid auth chain
+                addressNotFound:
+                  summary: Address not authorized
+                  value:
+                    message: Address not found
+                missingAccess:
+                  summary: Missing parcel access
+                  value:
+                    message: "Missing access for 2 parcels: -10,20; -10,21"
+        "500":
+          description: Internal server error or upstream Catalyst error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+components:
+  schemas:
+    AboutResponse:
+      type: object
+      description: Catalyst-compatible about response
+      properties:
+        acceptingUsers:
+          type: boolean
+          description: Whether the server is accepting user connections
+          example: true
+        bff:
+          type: object
+          properties:
+            healthy:
+              type: boolean
+              example: false
+            publicUrl:
+              type: string
+              example: "https://linker.decentraland.org/bff"
+        comms:
+          type: object
+          properties:
+            healthy:
+              type: boolean
+              example: true
+            protocol:
+              type: string
+              example: v3
+            fixedAdapter:
+              type: string
+              example: "offline:offline"
+        configurations:
+          type: object
+          properties:
+            networkId:
+              type: integer
+              example: 0
+            globalScenesUrn:
+              type: array
+              items:
+                type: string
+            scenesUrn:
+              type: array
+              items:
+                type: string
+            realmName:
+              type: string
+              example: LinkerServer
+        content:
+          type: object
+          properties:
+            healthy:
+              type: boolean
+              example: true
+            publicUrl:
+              type: string
+              example: "https://linker.decentraland.org/content"
+        lambdas:
+          type: object
+          properties:
+            healthy:
+              type: boolean
+              example: true
+            publicUrl:
+              type: string
+              example: "https://linker.decentraland.org/lambdas"
+        healthy:
+          type: boolean
+          description: Overall health status
+          example: true
+
+    AuthChainLink:
+      type: object
+      description: A single link in an authentication chain
+      required:
+        - type
+        - payload
+      properties:
+        type:
+          type: string
+          enum:
+            - SIGNER
+            - ECDSA_EPHEMERAL
+            - ECDSA_SIGNED_ENTITY
+            - ECDSA_EIP_1654_EPHEMERAL
+            - ECDSA_EIP_1654_SIGNED_ENTITY
+          description: The type of authentication link
+        payload:
+          type: string
+          description: The payload being signed or the signer address
+        signature:
+          type: string
+          description: The cryptographic signature (required for signed types)
+
+    ContentAvailability:
+      type: object
+      description: Content availability status
+      properties:
+        cid:
+          type: string
+          description: Content identifier
+        available:
+          type: boolean
+          description: Whether the content is available
+
+    DeploymentResponse:
+      type: object
+      description: Successful deployment response from Catalyst
+      properties:
+        creationTimestamp:
+          type: integer
+          format: int64
+          description: Unix timestamp of entity creation
+
+    ErrorResponse:
+      type: object
+      description: Error response
+      required:
+        - message
+      properties:
+        message:
+          type: string
+          description: Human-readable error message
+          example: Address not found
