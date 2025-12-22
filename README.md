@@ -1,59 +1,112 @@
-# Linker server
+# Linker Server
 
-The linker server is used to publish scenes on the Decentraland Foundation's lands without having owner or manager permissions over those lands via the contract. The service grabs an authorization's list from the [Linker Server Authorization](https://github.com/decentraland/linker-server-authorizations) repository to allow publishing scenes only to previously accepted wallets.
+The Linker Server enables authorized users to deploy scenes to Decentraland Foundation-owned lands without requiring contract ownership or manager permissions. It acts as a proxy Catalyst that validates authorizations and re-signs entities with a privileged wallet.
 
-## How it works
+## Table of Contents
 
-### Downloading authorized wallets
+- [Features](#features)
+- [Dependencies & Related Services](#dependencies--related-services)
+- [API Documentation](#api-documentation)
+- [Getting Started](#getting-started)
+  - [Prerequisites](#prerequisites)
+  - [Installation](#installation)
+  - [Configuration](#configuration)
+  - [Running the Service](#running-the-service)
 
-The service updates the authorized wallets and the plots they're authorized to deploy in through a polling process. There's no need to redeploy the service once the list is changed.
+## Features
 
-### Deploying scenes
+- **Authorization Validation**: Validates user authorization against an approved wallet list fetched from the [linker-server-authorizations](https://github.com/decentraland/linker-server-authorizations) repository.
+- **Parcel Access Control**: Verifies that parcel coordinates match the authorized deployment plots for each wallet.
+- **Entity Re-signing**: Re-signs scene entities using a privileged wallet with Foundation land permissions.
+- **Catalyst Publishing**: Publishes re-signed entities to Foundation Catalyst nodes.
+- **Dynamic Authorization Updates**: Polls the authorization repository periodically for updated wallet/plot lists without requiring redeployment.
 
-The deployment of scenes is done by signing the deployed entity first using the [Linked dApp UI](https://github.com/decentraland/linker-dapp) or any other UI.
+## Dependencies & Related Services
 
-The process goes as follows:
+This service interacts with the following dependencies or services:
 
-1. The user explicitly sets the linker server url as the Catalyst where they're going to deploy the scene.
-2. The user signs the entity related to the scene that they want to deploy.
-3. The linker server will check that the signed entity belongs to an authorized wallet and that this wallet can deploy scenes to the coordinates it needs to.
-4. The linker server will re-sign the entities using a secret wallet with permissions and publish it to the Catalyst.
+- **[linker-server-authorizations](https://github.com/decentraland/linker-server-authorizations)**: Provides the list of authorized wallets and their permitted deployment plots.
+- **[Linked dApp UI](https://github.com/decentraland/linker-dapp)**: Frontend application for users to sign entities before deployment.
+- **Foundation Catalyst Nodes**: Final deployment destination for scene entities.
+- **AWS Secrets Manager**: Stores the privileged wallet private key used for re-signing entities.
+- **Ethereum Wallet**: A wallet with Foundation land permissions for entity re-signing.
 
-The service will deploy the scenes in different Catalysts depending on the environment they're in.
+## API Documentation
 
-## 🤖 AI Agent Context
+The API is fully documented using the [OpenAPI standard](https://swagger.io/specification/). The schema is located at [docs/openapi.yaml](docs/openapi.yaml).
 
-**Service Purpose:** Enables authorized users to deploy scenes to Decentraland Foundation-owned lands without requiring contract ownership or manager permissions. Acts as a proxy Catalyst that validates authorizations and re-signs entities with a privileged wallet.
+## Getting Started
 
-**Key Capabilities:**
+### Prerequisites
 
-- Validates user authorization against approved wallet list (from linker-server-authorizations repository)
-- Verifies parcel coordinates match authorized deployment plots
-- Re-signs scene entities using privileged wallet with Foundation land permissions
-- Publishes re-signed entities to Foundation Catalysts
-- Polls authorization repository for updated wallet/plot lists
-- Supports deployment to different Catalyst environments per configuration
+Before running this service, ensure you have the following installed:
 
-**Communication Pattern:** Synchronous HTTP REST API (receives deployment requests)
+- **Node.js**: Version 18.x or higher (LTS recommended)
+- **npm**: Version 8.x or higher
+- **Docker**: For containerized building and running (optional)
 
-**Technology Stack:**
+### Installation
 
-- Runtime: Node.js
-- Language: TypeScript
-- HTTP Framework: Express or @well-known-components/http-server
-- Component Architecture: @well-known-components (logger, metrics)
+1. Clone the repository:
 
-**External Dependencies:**
+```bash
+git clone https://github.com/decentraland/linker-server.git
+cd linker-server
+```
 
-- Authorization Source: linker-server-authorizations GitHub repository (authorized wallets and plots)
-- Content Servers: Foundation Catalyst nodes (final deployment destination)
-- Crypto: Ethereum wallet with Foundation land permissions (re-signing)
+2. Install dependencies:
 
-**Authorization Flow:**
+```bash
+npm install
+```
 
-1. Service polls linker-server-authorizations repo for authorized wallets and plots
-2. User signs entity via Linked dApp UI
-3. User deploys to linker server (specified as Catalyst endpoint)
-4. Server validates: wallet is authorized AND coordinates match authorized plots
-5. Server re-signs entity with privileged wallet
-6. Server publishes to Foundation Catalyst nodes
+3. Build the project:
+
+```bash
+npm run build
+```
+
+### Configuration
+
+The service uses environment variables for configuration. Create a `.env` file in the root directory:
+
+| Variable          | Description                             | Default                         |
+| ----------------- | --------------------------------------- | ------------------------------- |
+| `ENVIRONMENT`     | Deployment environment (`stg` or `prd`) | `stg`                           |
+| `CATALYST_DOMAIN` | Target Catalyst domain for publishing   | `peer-testing.decentraland.org` |
+
+The service also requires access to AWS Secrets Manager to retrieve the privileged wallet's private key (secret name: `linker-server`).
+
+### Running the Service
+
+#### Running in development mode
+
+To run the service in development mode:
+
+```bash
+npm start
+```
+
+The server will start on port 3000.
+
+#### Running with Docker
+
+Build the Docker image:
+
+```bash
+docker build -t linker-server .
+```
+
+Run the container:
+
+```bash
+docker run -p 3000:3000 -e ENVIRONMENT=stg -e AWS_REGION=us-east-1 linker-server
+```
+
+## Deployment workflow
+
+To understand a bit more how the deployment workflow works, see
+
+## AI Agent Context
+
+For detailed AI Agent context, see the [🤖 AI Agent Context](#-ai-agent-context-1) section below.
