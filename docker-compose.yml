@@ -1,0 +1,28 @@
+# LocalStack with Secrets Manager for local development
+#
+# Usage:
+#   1. Start LocalStack: docker-compose up -d
+#   2. Add AWS_ENDPOINT=http://localhost:4566 to your .env or .env.local
+#   3. Run the server normally
+#
+# The init script will automatically create a 'linker-server' secret
+# with a test private key.
+
+version: '3.8'
+
+services:
+  localstack:
+    image: localstack/localstack:latest
+    container_name: linker-server-localstack
+    ports:
+      - '4566:4566'
+    environment:
+      - SERVICES=secretsmanager
+      - DEBUG=1
+      - DOCKER_HOST=unix:///var/run/docker.sock
+    volumes:
+      - './localstack/init:/etc/localstack/init/ready.d'
+      - localstack_data:/var/lib/localstack
+
+volumes:
+  localstack_data:

@@ -1,0 +1,182 @@
+openapi: 3.0.3
+info:
+  title: Linker Server API
+  version: 1.0.0
+  description: |
+    ## Overview
+
+    The Linker Server provides an intermediary service for deploying content to Decentraland's Catalyst network.
+    It validates authorization for specific parcels and proxies upload requests with server-signed authentication.
+
+  contact:
+    name: Decentraland Foundation
+  license:
+    name: Apache 2.0
+    url: https://www.apache.org/licenses/LICENSE-2.0.html
+
+servers:
+  - url: http://localhost:3000
+    description: Local development server
+
+tags:
+  - name: Health
+    description: Health check endpoints
+  - name: Content
+    description: Content management endpoints
+
+paths:
+  /ping:
+    get:
+      tags:
+        - Health
+      summary: Ping endpoint
+      description: Simple health check that returns the request path
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: /ping
+
+  /health/ready:
+    get:
+      tags:
+        - Health
+      summary: Readiness check
+      description: Check if the server is ready to handle requests
+      responses:
+        '200':
+          description: Server is ready
+          content:
+            text/plain:
+              schema:
+                type: string
+
+  /health/startup:
+    get:
+      tags:
+        - Health
+      summary: Startup check
+      description: Check if the server has completed startup
+      responses:
+        '200':
+          description: Server has started
+          content:
+            text/plain:
+              schema:
+                type: string
+
+  /health/live:
+    get:
+      tags:
+        - Health
+      summary: Liveness check
+      description: Check if the server is alive
+      responses:
+        '200':
+          description: Server is alive
+          content:
+            text/plain:
+              schema:
+                type: string
+
+  /about:
+    get:
+      tags:
+        - Health
+      summary: Server information
+      description: Returns server metadata and configuration
+      responses:
+        '200':
+          description: Server information
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  acceptingUsers:
+                    type: boolean
+                  healthy:
+                    type: boolean
+                  configurations:
+                    type: object
+                    properties:
+                      networkId:
+                        type: integer
+                      realmName:
+                        type: string
+
+  /content/available-content:
+    get:
+      tags:
+        - Content
+      summary: Get available content
+      description: Proxies request to Catalyst to check available content
+      parameters:
+        - name: cid
+          in: query
+          description: Content identifier to check
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Content availability information
+        '500':
+          description: Error proxying request
+
+  /content/entities:
+    post:
+      tags:
+        - Content
+      summary: Upload entity
+      description: |
+        Validates authorization and uploads an entity to the Catalyst.
+        Requires a valid auth chain and authorization for all parcels in the entity.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - authChain
+                - entityId
+              properties:
+                authChain:
+                  type: string
+                  description: JSON-encoded auth chain
+                entityId:
+                  type: string
+                  description: The entity ID
+      responses:
+        '200':
+          description: Entity uploaded successfully
+        '400':
+          description: Missing required fields
+        '403':
+          description: Authorization failed
+          content:
+            text/plain:
+              schema:
+                type: string
+                examples:
+                  - No auth chain provided
+                  - Invalid auth chain
+                  - Address not found
+                  - Missing access for N parcels
+        '500':
+          description: Internal server error
+
+components:
+  securitySchemes:
+    SignedFetch:
+      type: apiKey
+      in: header
+      name: X-Identity-Auth-Chain-*
+      description: |
+        Signed fetch authentication using Decentraland's ADR-44 specification.
+        Multiple headers are used to provide the authentication chain.
+
+
