@@ -138,12 +138,15 @@ describe('when using the linker component', () => {
         expect(result.response).toEqual(catalystResponse)
       })
 
-      it('should call postForm with the correct URL', async () => {
+      it('should call postForm with the correct URL and headers', async () => {
         await component.uploadToCatalyst(entityId, files)
         expect(postForm).toHaveBeenCalledWith(
           `https://${TEST_CATALYST_DOMAIN}/content/entities`,
           expect.objectContaining({
-            headers: { 'x-upload-origin': 'dcl_linker' },
+            headers: {
+              'x-upload-origin': 'dcl_linker',
+              'X-Extend-CF-Timeout': '600'
+            },
             timeout: '10m'
           })
         )
