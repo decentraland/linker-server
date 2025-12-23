@@ -1,7 +1,3 @@
-import type { LinkerAuthorization } from '@dcl/schemas'
-
-export type Authorizations = LinkerAuthorization[]
-
 export interface AuthorizationsList {
   [address: string]: string[]
 }
