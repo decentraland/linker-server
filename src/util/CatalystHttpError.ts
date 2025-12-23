@@ -1,3 +1,5 @@
+import { isErrorWithMessage } from '@dcl/core-commons'
+
 /**
  * Error representing an HTTP failure returned by a Catalyst endpoint.
  */
@@ -12,8 +14,7 @@ export class CatalystHttpError extends Error {
   }
 
   // Matches: "Failed to fetch <url>. Got status <code>. Response was '<json or text>'"
-  private static readonly FETCH_ERROR_RE =
-    /^Failed to fetch\s+\S+\. Got status\s+(\d{3})\. Response was '([\s\S]+)'$/
+  private static readonly FETCH_ERROR_RE = /^Failed to fetch\s+\S+\. Got status\s+(\d{3})\. Response was '([\s\S]+)'$/
 
   /**
    * Tries to parse a known "Failed to fetch ..." error message from the Catalyst client
@@ -37,11 +38,14 @@ export class CatalystHttpError extends Error {
   static fromUnknown(error: unknown): CatalystHttpError | null {
     if (!error) return null
 
-    const message = typeof (error as any)?.message === 'string' ? (error as any).message : String(error)
+    const message = isErrorWithMessage(error) ? error.message : String(error)
     const parsed = CatalystHttpError.parseFromMessage(message)
     if (parsed) return parsed
 
-    const explicitStatus = typeof (error as any)?.status === 'number' ? (error as any).status : undefined
+    const explicitStatus =
+      typeof error === 'object' && error !== null && 'status' in error && typeof error.status === 'number'
+        ? error.status
+        : undefined
     if (explicitStatus) {
       return new CatalystHttpError(explicitStatus, message)
     }
@@ -67,5 +71,3 @@ export class CatalystHttpError extends Error {
     return raw
   }
 }
-
-
