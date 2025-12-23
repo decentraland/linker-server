@@ -5,7 +5,7 @@ import FormData from 'form-data'
 import type { IConfigComponent, ILoggerComponent } from '@well-known-components/interfaces'
 import { isErrorWithMessage } from '@dcl/core-commons'
 import { Authenticator } from '@dcl/crypto'
-import type { AuthChain } from '@dcl/schemas'
+import { type AuthChain, AuthLinkType } from '@dcl/schemas'
 import { CatalystHttpError } from '../../util/CatalystHttpError'
 import type { ILinkerComponent, UploadFiles, UploadResult, ValidationResult } from './types'
 import type { ISecretsComponent } from '../../adapters/secrets'
@@ -41,7 +41,7 @@ export async function createLinkerComponent(components: {
    * @returns Validation result with signer address if valid
    */
   async function validateAuthChain(authChain: AuthChain): Promise<ValidationResult> {
-    const authSignedEntity = authChain.find((a) => a.type === 'ECDSA_SIGNED_ENTITY')
+    const authSignedEntity = authChain.find((a) => a.type === AuthLinkType.ECDSA_PERSONAL_SIGNED_ENTITY)
     if (!authSignedEntity?.signature) {
       return { ok: false, signerAddress: '', error: 'No signature' }
     }
@@ -93,7 +93,7 @@ export async function createLinkerComponent(components: {
 
       const ret = await postForm(`https://${catalystDomain}/content/entities`, {
         body: form as unknown as globalThis.FormData,
-        headers: { 'x-upload-origin': 'dcl_linker' },
+        headers: { 'x-upload-origin': 'dcl_linker', 'X-Extend-CF-Timeout': '600' },
         timeout: '10m'
       })
 
