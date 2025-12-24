@@ -1,33 +1,44 @@
+import type { AuthChain } from '@dcl/schemas'
 import { parseAuthChainFromFields } from '../../src/util/auth-chain'
 
+type FormFields = Record<string, { fieldname: string; value: string }>
+
 describe('when parsing auth chain from form fields', () => {
+  let fields: FormFields
+  let result: AuthChain | null
+
   describe('and no auth chain fields are present', () => {
-    it('should return null', () => {
-      const fields = {
+    beforeEach(() => {
+      fields = {
         entityId: { fieldname: 'entityId', value: 'bafkreiexample' }
       }
-      expect(parseAuthChainFromFields(fields)).toBeNull()
+      result = parseAuthChainFromFields(fields)
+    })
+
+    it('should return null', () => {
+      expect(result).toBeNull()
     })
   })
 
   describe('and auth chain fields are present', () => {
     describe('and there is a single auth link', () => {
-      it('should parse the auth chain correctly', () => {
-        const fields = {
+      beforeEach(() => {
+        fields = {
           'authChain[0][type]': { fieldname: 'authChain[0][type]', value: 'SIGNER' },
           'authChain[0][payload]': { fieldname: 'authChain[0][payload]', value: '0x1234567890abcdef' },
           'authChain[0][signature]': { fieldname: 'authChain[0][signature]', value: '' }
         }
+        result = parseAuthChainFromFields(fields)
+      })
 
-        const result = parseAuthChainFromFields(fields)
-
+      it('should parse the one auth link correctly', () => {
         expect(result).toEqual([{ type: 'SIGNER', payload: '0x1234567890abcdef', signature: '' }])
       })
     })
 
     describe('and there are multiple auth links', () => {
-      it('should parse and order them correctly', () => {
-        const fields = {
+      beforeEach(() => {
+        fields = {
           'authChain[0][type]': { fieldname: 'authChain[0][type]', value: 'SIGNER' },
           'authChain[0][payload]': { fieldname: 'authChain[0][payload]', value: '0xsigner' },
           'authChain[0][signature]': { fieldname: 'authChain[0][signature]', value: '' },
@@ -38,9 +49,10 @@ describe('when parsing auth chain from form fields', () => {
           'authChain[2][payload]': { fieldname: 'authChain[2][payload]', value: 'bafkreientity' },
           'authChain[2][signature]': { fieldname: 'authChain[2][signature]', value: '0xsig2' }
         }
+        result = parseAuthChainFromFields(fields)
+      })
 
-        const result = parseAuthChainFromFields(fields)
-
+      it('should parse the three auth links correctly', () => {
         expect(result).toEqual([
           { type: 'SIGNER', payload: '0xsigner', signature: '' },
           { type: 'ECDSA_EPHEMERAL', payload: 'ephemeral payload', signature: '0xsig1' },
@@ -50,8 +62,8 @@ describe('when parsing auth chain from form fields', () => {
     })
 
     describe('and the fields are in non-sequential order', () => {
-      it('should still parse them in the correct order', () => {
-        const fields = {
+      beforeEach(() => {
+        fields = {
           'authChain[2][type]': { fieldname: 'authChain[2][type]', value: 'THIRD' },
           'authChain[2][payload]': { fieldname: 'authChain[2][payload]', value: 'third' },
           'authChain[2][signature]': { fieldname: 'authChain[2][signature]', value: '' },
@@ -62,9 +74,10 @@ describe('when parsing auth chain from form fields', () => {
           'authChain[1][payload]': { fieldname: 'authChain[1][payload]', value: 'second' },
           'authChain[1][signature]': { fieldname: 'authChain[1][signature]', value: '' }
         }
+        result = parseAuthChainFromFields(fields)
+      })
 
-        const result = parseAuthChainFromFields(fields)
-
+      it('should still parse them in the correct order', () => {
         expect(result).toEqual([
           { type: 'FIRST', payload: 'first', signature: '' },
           { type: 'SECOND', payload: 'second', signature: '' },
@@ -74,17 +87,18 @@ describe('when parsing auth chain from form fields', () => {
     })
 
     describe('and there are other fields mixed in', () => {
-      it('should only parse the auth chain fields', () => {
-        const fields = {
+      beforeEach(() => {
+        fields = {
           entityId: { fieldname: 'entityId', value: 'bafkreiexample' },
           'authChain[0][type]': { fieldname: 'authChain[0][type]', value: 'SIGNER' },
           'authChain[0][payload]': { fieldname: 'authChain[0][payload]', value: '0xaddr' },
           'authChain[0][signature]': { fieldname: 'authChain[0][signature]', value: '' },
           someOtherField: { fieldname: 'someOtherField', value: 'ignored' }
         }
+        result = parseAuthChainFromFields(fields)
+      })
 
-        const result = parseAuthChainFromFields(fields)
-
+      it('should only parse the auth chain fields', () => {
         expect(result).toEqual([{ type: 'SIGNER', payload: '0xaddr', signature: '' }])
       })
     })
