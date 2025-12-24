@@ -36,13 +36,19 @@ describe('when creating the secrets component', () => {
     beforeEach(async () => {
       mockConfig.requireString.mockResolvedValueOnce(region)
       mockConfig.getString.mockResolvedValueOnce(endpoint)
+      mockConfig.getString.mockResolvedValueOnce(undefined) // AWS_ACCESS_KEY_ID
+      mockConfig.getString.mockResolvedValueOnce(undefined) // AWS_SECRET_ACCESS_KEY
       await createSecretsComponent({ config: mockConfig, logs: mockLogs, cache: mockCache })
     })
 
-    it('should create the client with the custom endpoint', () => {
+    it('should create the client with the custom endpoint and fallback credentials', () => {
       expect(SecretsManagerClient).toHaveBeenCalledWith({
         region,
-        endpoint
+        endpoint,
+        credentials: {
+          accessKeyId: 'test',
+          secretAccessKey: 'test'
+        }
       })
     })
   })
@@ -50,7 +56,9 @@ describe('when creating the secrets component', () => {
   describe('and no endpoint is provided', () => {
     beforeEach(async () => {
       mockConfig.requireString.mockResolvedValueOnce(region)
-      mockConfig.getString.mockResolvedValueOnce(undefined)
+      mockConfig.getString.mockResolvedValueOnce(undefined) // AWS_ENDPOINT
+      mockConfig.getString.mockResolvedValueOnce(undefined) // AWS_ACCESS_KEY_ID
+      mockConfig.getString.mockResolvedValueOnce(undefined) // AWS_SECRET_ACCESS_KEY
       await createSecretsComponent({ config: mockConfig, logs: mockLogs, cache: mockCache })
     })
 
@@ -80,7 +88,9 @@ describe('when calling getSecret', () => {
     }))
 
     mockConfig.requireString.mockResolvedValueOnce(region)
-    mockConfig.getString.mockResolvedValueOnce(undefined)
+    mockConfig.getString.mockResolvedValueOnce(undefined) // AWS_ENDPOINT
+    mockConfig.getString.mockResolvedValueOnce(undefined) // AWS_ACCESS_KEY_ID
+    mockConfig.getString.mockResolvedValueOnce(undefined) // AWS_SECRET_ACCESS_KEY
     secretsComponent = await createSecretsComponent({ config: mockConfig, logs: mockLogs, cache: mockCache })
   })
 
