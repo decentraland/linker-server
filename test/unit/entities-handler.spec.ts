@@ -124,9 +124,9 @@ describe('when calling the entities handler', () => {
       } as never)
     })
 
-    it('should return status 403 with an address not found error', () => {
+    it('should return status 403 with an address not authorized error', () => {
       expect(result.status).toBe(403)
-      expect(result.body).toEqual({ error: 'Forbidden', message: 'Address not found' })
+      expect(result.body).toEqual({ error: 'Forbidden', message: 'Address not authorized to deploy scenes' })
     })
 
     it('should check authorization with the signer address', () => {
@@ -158,9 +158,9 @@ describe('when calling the entities handler', () => {
       } as never)
     })
 
-    it('should return status 400 with a missing entityId error', () => {
+    it('should return status 400 with a missing entity id error', () => {
       expect(result.status).toBe(400)
-      expect(result.body).toEqual({ error: 'Bad request', message: 'Missing entityId' })
+      expect(result.body).toEqual({ error: 'Bad request', message: 'Missing entity id field in the form data' })
     })
 
     it('should increment the invalid request counter', () => {

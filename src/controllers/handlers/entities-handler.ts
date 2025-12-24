@@ -42,7 +42,7 @@ export async function entitiesHandler(
     const signerAddress = validationResult.signerAddress
     const authorizationResult = await authorizations.checkAuthorization(signerAddress)
     if (!authorizationResult.authorized) {
-      throw new ForbiddenError('Address not found')
+      throw new ForbiddenError('Address not authorized to deploy scenes')
     }
 
     logger.info('Signer found in authorizations list', { signerAddress })
@@ -50,7 +50,7 @@ export async function entitiesHandler(
     // Get the entity ID
     const entityIdField = formData.fields.entityId
     if (!entityIdField) {
-      throw new InvalidRequestError('Missing entityId')
+      throw new InvalidRequestError('Missing entity id field in the form data')
     }
 
     const entityId = entityIdField.value
