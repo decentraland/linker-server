@@ -14,7 +14,7 @@ describe('when calling the about handler', () => {
     expect(result.status).toBe(200)
     expect(result.body).toEqual({
       acceptingUsers: true,
-      bff: { healthy: false, publicUrl: 'linker.decentraland.org/bff' },
+      bff: { healthy: false, publicUrl: 'https://linker.decentraland.org/bff' },
       comms: {
         healthy: true,
         protocol: 'v3',
@@ -28,11 +28,11 @@ describe('when calling the about handler', () => {
       },
       content: {
         healthy: true,
-        publicUrl: 'linker.decentraland.org/content'
+        publicUrl: 'https://linker.decentraland.org/content'
       },
       lambdas: {
         healthy: true,
-        publicUrl: 'linker.decentraland.org/lambdas'
+        publicUrl: 'https://linker.decentraland.org/lambdas'
       },
       healthy: true
     })
