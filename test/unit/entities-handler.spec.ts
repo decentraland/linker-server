@@ -10,6 +10,22 @@ import type { metricDeclarations } from '../../src/metrics'
 
 type MetricsKeys = keyof typeof metricDeclarations
 
+/**
+ * Helper to create auth chain fields in the multipart format
+ */
+function createAuthChainFields(authChain: Array<{ type: string; payload: string; signature?: string }>) {
+  const fields: Record<string, { fieldname: string; value: string }> = {}
+  authChain.forEach((link, index) => {
+    fields[`authChain[${index}][type]`] = { fieldname: `authChain[${index}][type]`, value: link.type }
+    fields[`authChain[${index}][payload]`] = { fieldname: `authChain[${index}][payload]`, value: link.payload }
+    fields[`authChain[${index}][signature]`] = {
+      fieldname: `authChain[${index}][signature]`,
+      value: link.signature ?? ''
+    }
+  })
+  return fields
+}
+
 describe('when calling the entities handler', () => {
   let mockLogs: jest.Mocked<ILoggerComponent>
   let mockMetrics: jest.Mocked<IMetricsComponent<MetricsKeys>>
@@ -66,9 +82,7 @@ describe('when calling the entities handler', () => {
 
       result = await entitiesHandler({
         formData: {
-          fields: {
-            authChain: { value: JSON.stringify([{ type: 'SIGNER', payload: '0x123' }]) }
-          },
+          fields: createAuthChainFields([{ type: 'SIGNER', payload: '0x123' }]),
           files: {}
         },
         components: {
@@ -98,9 +112,7 @@ describe('when calling the entities handler', () => {
 
       result = await entitiesHandler({
         formData: {
-          fields: {
-            authChain: { value: JSON.stringify([{ type: 'SIGNER', payload: '0xunauthorized' }]) }
-          },
+          fields: createAuthChainFields([{ type: 'SIGNER', payload: '0xunauthorized' }]),
           files: {}
         },
         components: {
@@ -134,9 +146,7 @@ describe('when calling the entities handler', () => {
 
       result = await entitiesHandler({
         formData: {
-          fields: {
-            authChain: { value: JSON.stringify([{ type: 'SIGNER', payload: '0xauthorized' }]) }
-          },
+          fields: createAuthChainFields([{ type: 'SIGNER', payload: '0xauthorized' }]),
           files: {}
         },
         components: {
@@ -171,8 +181,8 @@ describe('when calling the entities handler', () => {
       result = await entitiesHandler({
         formData: {
           fields: {
-            authChain: { value: JSON.stringify([{ type: 'SIGNER', payload: '0xauthorized' }]) },
-            entityId: { value: 'bafkreiexample' }
+            ...createAuthChainFields([{ type: 'SIGNER', payload: '0xauthorized' }]),
+            entityId: { fieldname: 'entityId', value: 'bafkreiexample' }
           },
           files: {}
         },
@@ -210,8 +220,8 @@ describe('when calling the entities handler', () => {
       result = await entitiesHandler({
         formData: {
           fields: {
-            authChain: { value: JSON.stringify([{ type: 'SIGNER', payload: '0xauthorized' }]) },
-            entityId: { value: 'bafkreiexample' }
+            ...createAuthChainFields([{ type: 'SIGNER', payload: '0xauthorized' }]),
+            entityId: { fieldname: 'entityId', value: 'bafkreiexample' }
           },
           files: {
             bafkreiexample: { fieldname: 'bafkreiexample', value: Buffer.from(entityContent) }
@@ -256,8 +266,8 @@ describe('when calling the entities handler', () => {
       result = await entitiesHandler({
         formData: {
           fields: {
-            authChain: { value: JSON.stringify([{ type: 'SIGNER', payload: '0xauthorized' }]) },
-            entityId: { value: 'bafkreiexample' }
+            ...createAuthChainFields([{ type: 'SIGNER', payload: '0xauthorized' }]),
+            entityId: { fieldname: 'entityId', value: 'bafkreiexample' }
           },
           files: {
             bafkreiexample: { fieldname: 'bafkreiexample', value: Buffer.from(entityContent) }
@@ -302,8 +312,8 @@ describe('when calling the entities handler', () => {
       result = await entitiesHandler({
         formData: {
           fields: {
-            authChain: { value: JSON.stringify([{ type: 'SIGNER', payload: '0xauthorized' }]) },
-            entityId: { value: 'bafkreiexample' }
+            ...createAuthChainFields([{ type: 'SIGNER', payload: '0xauthorized' }]),
+            entityId: { fieldname: 'entityId', value: 'bafkreiexample' }
           },
           files: {
             bafkreiexample: { fieldname: 'bafkreiexample', value: Buffer.from(entityContent) }

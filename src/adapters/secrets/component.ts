@@ -28,11 +28,26 @@ export async function createSecretsComponent(components: {
   const { config, logs, cache } = components
   const logger = logs.getLogger('secrets-component')
 
-  const [region, endpoint] = await Promise.all([config.requireString('AWS_REGION'), config.getString('AWS_ENDPOINT')])
+  const [region, endpoint, accessKeyId, secretAccessKey] = await Promise.all([
+    config.requireString('AWS_REGION'),
+    config.getString('AWS_ENDPOINT'),
+    config.getString('AWS_ACCESS_KEY_ID'),
+    config.getString('AWS_SECRET_ACCESS_KEY')
+  ])
 
-  const clientConfig: { region: string; endpoint?: string } = { region }
+  const clientConfig: {
+    region: string
+    endpoint?: string
+    credentials?: { accessKeyId: string; secretAccessKey: string }
+  } = { region }
   if (endpoint) {
     clientConfig.endpoint = endpoint
+    // When using a custom endpoint (e.g., LocalStack), provide dummy credentials
+    // if real AWS credentials are not configured
+    clientConfig.credentials = {
+      accessKeyId: accessKeyId || 'test',
+      secretAccessKey: secretAccessKey || 'test'
+    }
     logger.info('Using custom endpoint for Secrets Manager', { endpoint })
   }
 

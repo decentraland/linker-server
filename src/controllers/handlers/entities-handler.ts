@@ -1,6 +1,7 @@
 import type { IHttpServerComponent } from '@well-known-components/interfaces'
 import { isErrorWithMessage } from '@dcl/core-commons'
 import { InvalidRequestError } from '@dcl/platform-server-commons'
+import { parseAuthChainFromFields } from '../../util/auth-chain'
 import { ForbiddenError } from '../errors'
 import type { FormHandlerContextWithPath } from '../../types'
 
@@ -25,13 +26,11 @@ export async function entitiesHandler(
   try {
     logger.info('POST: /content/entities')
 
-    // Parse the auth chain from the form data
-    const authChainField = formData.fields.authChain
-    if (!authChainField) {
+    // Parse the auth chain from the form data fields
+    const authChain = parseAuthChainFromFields(formData.fields)
+    if (!authChain || authChain.length === 0) {
       throw new ForbiddenError('No auth chain provided')
     }
-
-    const authChain = JSON.parse(authChainField.value)
 
     // Validate the signature
     const validationResult = await linker.validateAuthChain(authChain)

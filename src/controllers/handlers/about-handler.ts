@@ -12,7 +12,7 @@ import type { GlobalContext } from '../../types'
 export async function aboutHandler(
   context: IHttpServerComponent.DefaultContext<GlobalContext> & { url: URL }
 ): Promise<IHttpServerComponent.IResponse> {
-  const url = context.url.hostname
+  const url = context.url.protocol + '//' + context.url.host
 
   return {
     status: 200,
