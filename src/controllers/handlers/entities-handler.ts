@@ -55,6 +55,13 @@ export async function entitiesHandler(
 
     const entityId = entityIdField.value
 
+    // Ensure the signed payload matches the entity being deployed. Without this
+    // check a captured auth chain (which signs its own entityId) could be replayed
+    // to deploy arbitrary content under an authorized signer.
+    if (validationResult.signedEntityId !== entityId) {
+      throw new ForbiddenError('Auth chain payload does not match the entity id')
+    }
+
     // Get the entity file
     const entityFile = formData.files[entityId]
     if (!entityFile) {
