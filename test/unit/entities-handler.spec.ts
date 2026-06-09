@@ -142,7 +142,11 @@ describe('when calling the entities handler', () => {
       mockAuthorizations.checkAuthorization.mockResolvedValueOnce({ authorized: true, parcels: ['0,0'] })
 
       mockLinker = createLinkerMockedComponent()
-      mockLinker.validateAuthChain.mockResolvedValueOnce({ ok: true, signerAddress: '0xauthorized' })
+      mockLinker.validateAuthChain.mockResolvedValueOnce({
+        ok: true,
+        signerAddress: '0xauthorized',
+        signedEntityId: 'bafkreiexample'
+      })
 
       result = await entitiesHandler({
         formData: {
@@ -176,7 +180,11 @@ describe('when calling the entities handler', () => {
       mockAuthorizations.checkAuthorization.mockResolvedValueOnce({ authorized: true, parcels: ['0,0'] })
 
       mockLinker = createLinkerMockedComponent()
-      mockLinker.validateAuthChain.mockResolvedValueOnce({ ok: true, signerAddress: '0xauthorized' })
+      mockLinker.validateAuthChain.mockResolvedValueOnce({
+        ok: true,
+        signerAddress: '0xauthorized',
+        signedEntityId: 'bafkreiexample'
+      })
 
       result = await entitiesHandler({
         formData: {
@@ -201,6 +209,49 @@ describe('when calling the entities handler', () => {
     })
   })
 
+  describe('and the signed entity id does not match the entity id', () => {
+    let result: IHttpServerComponent.IResponse
+
+    beforeEach(async () => {
+      mockAuthorizations = createAuthorizationsMockedComponent()
+      mockAuthorizations.checkAuthorization.mockResolvedValueOnce({ authorized: true, parcels: ['0,0'] })
+
+      mockLinker = createLinkerMockedComponent()
+      mockLinker.validateAuthChain.mockResolvedValueOnce({
+        ok: true,
+        signerAddress: '0xauthorized',
+        signedEntityId: 'bafkreisignedsomethingelse'
+      })
+
+      result = await entitiesHandler({
+        formData: {
+          fields: {
+            ...createAuthChainFields([{ type: 'SIGNER', payload: '0xauthorized' }]),
+            entityId: { fieldname: 'entityId', value: 'bafkreiexample' }
+          },
+          files: {
+            bafkreiexample: { fieldname: 'bafkreiexample', value: Buffer.from('{"pointers":["0,0"]}') }
+          }
+        },
+        components: {
+          logs: mockLogs,
+          metrics: mockMetrics,
+          authorizations: mockAuthorizations,
+          linker: mockLinker
+        }
+      } as never)
+    })
+
+    it('should return status 403 rejecting the payload/entity-id mismatch', () => {
+      expect(result.status).toBe(403)
+      expect(result.body).toEqual({ error: 'Forbidden', message: 'Auth chain payload does not match the entity id' })
+    })
+
+    it('should not upload to the catalyst', () => {
+      expect(mockLinker.uploadToCatalyst).not.toHaveBeenCalled()
+    })
+  })
+
   describe('and the user does not have access to the parcels', () => {
     let result: IHttpServerComponent.IResponse
 
@@ -213,7 +264,11 @@ describe('when calling the entities handler', () => {
       })
 
       mockLinker = createLinkerMockedComponent()
-      mockLinker.validateAuthChain.mockResolvedValueOnce({ ok: true, signerAddress: '0xauthorized' })
+      mockLinker.validateAuthChain.mockResolvedValueOnce({
+        ok: true,
+        signerAddress: '0xauthorized',
+        signedEntityId: 'bafkreiexample'
+      })
 
       const entityContent = JSON.stringify({ pointers: ['0,0', '1,1', '2,2'] })
 
@@ -258,7 +313,11 @@ describe('when calling the entities handler', () => {
       mockAuthorizations.checkParcelAccess.mockResolvedValueOnce({ hasAccess: true, missingParcels: [] })
 
       mockLinker = createLinkerMockedComponent()
-      mockLinker.validateAuthChain.mockResolvedValueOnce({ ok: true, signerAddress: '0xauthorized' })
+      mockLinker.validateAuthChain.mockResolvedValueOnce({
+        ok: true,
+        signerAddress: '0xauthorized',
+        signedEntityId: 'bafkreiexample'
+      })
       mockLinker.uploadToCatalyst.mockResolvedValueOnce({ success: false, error: 'Catalyst rejected the upload' })
 
       const entityContent = JSON.stringify({ pointers: ['0,0'] })
@@ -304,7 +363,11 @@ describe('when calling the entities handler', () => {
       mockAuthorizations.checkParcelAccess.mockResolvedValueOnce({ hasAccess: true, missingParcels: [] })
 
       mockLinker = createLinkerMockedComponent()
-      mockLinker.validateAuthChain.mockResolvedValueOnce({ ok: true, signerAddress: '0xauthorized' })
+      mockLinker.validateAuthChain.mockResolvedValueOnce({
+        ok: true,
+        signerAddress: '0xauthorized',
+        signedEntityId: 'bafkreiexample'
+      })
       mockLinker.uploadToCatalyst.mockResolvedValueOnce({ success: true, response: catalystResponse })
 
       const entityContent = JSON.stringify({ pointers: ['0,0'] })
