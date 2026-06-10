@@ -101,6 +101,7 @@ describe('when using the linker component', () => {
         const result = await component.validateAuthChain(authChain)
         expect(result.ok).toBe(true)
         expect(result.signerAddress).toBe('0xSignerAddress')
+        expect(result.signedEntityId).toBe('entity-id')
         expect(result.error).toBeUndefined()
       })
     })

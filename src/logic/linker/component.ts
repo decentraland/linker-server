@@ -57,7 +57,7 @@ export async function createLinkerComponent(components: {
     }
 
     const signerAddress = Authenticator.ownerAddress(authChain)
-    return { ok: true, signerAddress }
+    return { ok: true, signerAddress, signedEntityId: authSignedEntity.payload }
   }
 
   /**

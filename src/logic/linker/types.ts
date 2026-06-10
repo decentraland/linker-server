@@ -3,6 +3,7 @@ import type { AuthChain } from '@dcl/schemas'
 export interface ValidationResult {
   ok: boolean
   signerAddress: string
+  signedEntityId?: string
   error?: string
 }
 
