@@ -399,6 +399,49 @@ describe('when calling the entities handler', () => {
     })
   })
 
+  describe('and the upload fails with an out-of-range status', () => {
+    let result: IHttpServerComponent.IResponse
+
+    beforeEach(async () => {
+      mockAuthorizations = createAuthorizationsMockedComponent()
+      mockAuthorizations.checkAuthorization.mockResolvedValueOnce({ authorized: true, parcels: ['0,0'] })
+      mockAuthorizations.checkParcelAccess.mockResolvedValueOnce({ hasAccess: true, missingParcels: [] })
+
+      mockLinker = createLinkerMockedComponent()
+      mockLinker.validateAuthChain.mockResolvedValueOnce({
+        ok: true,
+        signerAddress: '0xauthorized',
+        signedEntityId: 'bafkreiexample'
+      })
+      // A thrown error could carry an arbitrary numeric status (e.g. 1000) via fromUnknown.
+      mockLinker.uploadToCatalyst.mockResolvedValueOnce({ success: false, status: 1000, error: 'weird error' })
+
+      const entityContent = JSON.stringify({ pointers: ['0,0'] })
+
+      result = await entitiesHandler({
+        formData: {
+          fields: {
+            ...createAuthChainFields([{ type: 'SIGNER', payload: '0xauthorized' }]),
+            entityId: { fieldname: 'entityId', value: 'bafkreiexample' }
+          },
+          files: {
+            bafkreiexample: { fieldname: 'bafkreiexample', value: Buffer.from(entityContent) }
+          }
+        },
+        components: {
+          logs: mockLogs,
+          metrics: mockMetrics,
+          authorizations: mockAuthorizations,
+          linker: mockLinker
+        }
+      } as never)
+    })
+
+    it('should clamp an invalid status to 500 rather than emitting an invalid res.statusCode', () => {
+      expect(result.status).toBe(500)
+    })
+  })
+
   describe('and the upload is successful', () => {
     let result: IHttpServerComponent.IResponse
     let catalystResponse: object

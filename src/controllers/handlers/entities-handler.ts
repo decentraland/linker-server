@@ -84,8 +84,17 @@ export async function entitiesHandler(
 
     if (!uploadResult.success) {
       // Reflect the catalyst's status (e.g. a 400 "entity already deployed") back to the
-      // client instead of collapsing every upstream rejection into a 500.
-      const status = uploadResult.status ?? 500
+      // client instead of collapsing every upstream rejection into a 500. Guard against a
+      // non-HTTP status (a thrown error can carry an arbitrary numeric `status`), which would
+      // make the server throw a RangeError when writing res.statusCode.
+      const proposedStatus = uploadResult.status
+      const status =
+        typeof proposedStatus === 'number' &&
+        Number.isInteger(proposedStatus) &&
+        proposedStatus >= 400 &&
+        proposedStatus <= 599
+          ? proposedStatus
+          : 500
       const message = uploadResult.error ?? 'Upload failed'
       logger.warn('Catalyst rejected the entity upload', { status, error: message })
       metrics.increment('linker_entity_upload_counter', { status: 'error' })
