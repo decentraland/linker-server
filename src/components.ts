@@ -35,7 +35,7 @@ export async function initComponents(): Promise<AppComponents> {
   const secrets = await createSecretsComponent({ config, logs, cache })
 
   const authorizations = await createAuthorizationsComponent({ config, fetcher, logs })
-  const linker = await createLinkerComponent({ config, logs, secrets })
+  const linker = await createLinkerComponent({ config, logs, secrets, fetcher })
 
   // Create job to periodically update authorizations
   const authorizationsUpdaterJob = createJobComponent(

@@ -1,14 +1,17 @@
 import { Wallet } from '@ethersproject/wallet'
-import { addModelToFormData } from 'dcl-catalyst-client'
-import { postForm } from 'dcl-catalyst-commons'
-import FormData from 'form-data'
+import { createContentClient } from 'dcl-catalyst-client'
 import type { IConfigComponent, ILoggerComponent } from '@well-known-components/interfaces'
-import { isErrorWithMessage } from '@dcl/core-commons'
+import { type IFetchComponent, isErrorWithMessage } from '@dcl/core-commons'
 import { Authenticator } from '@dcl/crypto'
 import { type AuthChain, AuthLinkType } from '@dcl/schemas'
 import { CatalystHttpError } from '../../util/CatalystHttpError'
 import type { ILinkerComponent, UploadFiles, UploadResult, ValidationResult } from './types'
 import type { ISecretsComponent } from '../../adapters/secrets'
+
+// Catalyst deployments accept an optional 10-minute window plus the custom origin/timeout
+// headers the linker has always sent.
+const UPLOAD_TIMEOUT_MS = 10 * 60 * 1000
+const UPLOAD_HEADERS = { 'x-upload-origin': 'dcl_linker', 'X-Extend-CF-Timeout': '600' }
 
 /**
  * Creates the Linker component
@@ -25,14 +28,17 @@ export async function createLinkerComponent(components: {
   config: IConfigComponent
   logs: ILoggerComponent
   secrets: ISecretsComponent
+  fetcher: IFetchComponent
 }): Promise<ILinkerComponent> {
-  const { config, logs, secrets } = components
+  const { config, logs, secrets, fetcher } = components
   const logger = logs.getLogger('linker-component')
 
   const [catalystDomain, awsSecretId] = await Promise.all([
     config.requireString('CATALYST_DOMAIN'),
     config.requireString('AWS_SECRET_ID')
   ])
+
+  const contentClient = createContentClient({ url: `https://${catalystDomain}/content`, fetcher })
 
   /**
    * Validates an auth chain signature
@@ -74,29 +80,34 @@ export async function createLinkerComponent(components: {
       const secretJson = JSON.parse(secretString)
       const wallet = new Wallet(secretJson.private_key)
 
-      const form = new FormData()
-
-      form.append('entityId', entityId)
-
       // Sign the entity with the server wallet
       const sig = await wallet.signMessage(entityId)
       const authChain = Authenticator.createSimpleAuthChain(entityId, wallet.address.toString(), sig)
-      addModelToFormData(JSON.parse(JSON.stringify(authChain)), form, 'authChain')
 
-      // Append all files from the multipart form data
+      // The multipart field names are the content hashes (the entity file is keyed by entityId).
+      const filesMap = new Map<string, Uint8Array>()
       for (const [filename, file] of Object.entries(files)) {
-        form.append(filename, file.value, filename)
+        filesMap.set(filename, file.value)
         logger.debug(`Appending file as ${filename}`)
       }
 
       logger.info('Uploading to Catalyst', { catalystDomain, entityId })
 
-      const ret = await postForm(`https://${catalystDomain}/content/entities`, {
-        body: form as unknown as globalThis.FormData,
-        headers: { 'x-upload-origin': 'dcl_linker', 'X-Extend-CF-Timeout': '600' },
-        timeout: '10m'
-      })
+      // `deploy` returns the raw fetch Response and does not throw on HTTP errors,
+      // so we inspect the status ourselves.
+      const response = (await contentClient.deploy(
+        { entityId, files: filesMap, authChain },
+        { headers: UPLOAD_HEADERS, timeout: UPLOAD_TIMEOUT_MS }
+      )) as Response
 
+      if (!response.ok) {
+        const rawResponse = await response.text()
+        const httpError = CatalystHttpError.fromResponse(response.status, rawResponse)
+        logger.error('Catalyst upload failed', { status: response.status, response: rawResponse })
+        return { success: false, status: httpError.status, error: httpError.message }
+      }
+
+      const ret = await response.json()
       logger.info('Catalyst post response', { response: JSON.stringify(ret) })
 
       return { success: true, response: ret }

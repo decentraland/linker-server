@@ -54,6 +54,14 @@ export class CatalystHttpError extends Error {
   }
 
   /**
+   * Builds a CatalystHttpError from a non-2xx HTTP response (status + raw body),
+   * extracting a friendly message from the body when possible.
+   */
+  static fromResponse(status: number, rawBody: string): CatalystHttpError {
+    return new CatalystHttpError(status, CatalystHttpError.extractFriendlyMessage(rawBody), rawBody)
+  }
+
+  /**
    * Best-effort extraction of a user-friendly message from a JSON or text payload.
    */
   private static extractFriendlyMessage(raw: string): string {
