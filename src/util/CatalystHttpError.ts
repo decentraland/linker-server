@@ -13,24 +13,6 @@ export class CatalystHttpError extends Error {
     this.rawResponse = rawResponse
   }
 
-  // Matches: "Failed to fetch <url>. Got status <code>. Response was '<json or text>'"
-  private static readonly FETCH_ERROR_RE = /^Failed to fetch\s+\S+\. Got status\s+(\d{3})\. Response was '([\s\S]+)'$/
-
-  /**
-   * Tries to parse a known "Failed to fetch ..." error message from the Catalyst client
-   * and convert it into a CatalystHttpError with a friendly message.
-   */
-  static parseFromMessage(message: string): CatalystHttpError | null {
-    const match = message.match(CatalystHttpError.FETCH_ERROR_RE)
-    if (!match) return null
-
-    const status = parseInt(match[1], 10)
-    const rawStr = match[2]
-    const friendly = CatalystHttpError.extractFriendlyMessage(rawStr)
-
-    return new CatalystHttpError(isNaN(status) ? 500 : status, friendly, rawStr)
-  }
-
   /**
    * Attempts to convert any unknown error into a CatalystHttpError when possible.
    * Returns null if it cannot confidently determine status/message.
@@ -39,8 +21,6 @@ export class CatalystHttpError extends Error {
     if (!error) return null
 
     const message = isErrorWithMessage(error) ? error.message : String(error)
-    const parsed = CatalystHttpError.parseFromMessage(message)
-    if (parsed) return parsed
 
     const explicitStatus =
       typeof error === 'object' && error !== null && 'status' in error && typeof error.status === 'number'
