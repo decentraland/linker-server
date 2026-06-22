@@ -19,11 +19,18 @@ export async function setupRouter(context: GlobalContext): Promise<Router<Global
   const { config } = context.components
   const router = new Router<GlobalContext>()
 
+  // A configured value of 0 (or negative) is treated as "use the default" rather than busboy's
+  // literal 0-byte/0-count limit, which would reject every upload.
+  const positiveNumberOrDefault = async (key: string, fallback: number): Promise<number> => {
+    const value = await config.getNumber(key)
+    return value !== undefined && value > 0 ? value : fallback
+  }
+
   const uploadLimits = {
-    fileSize: (await config.getNumber('MAX_UPLOAD_FILE_SIZE_BYTES')) ?? DEFAULT_MAX_UPLOAD_FILE_SIZE_BYTES,
-    files: (await config.getNumber('MAX_UPLOAD_FILE_COUNT')) ?? DEFAULT_MAX_UPLOAD_FILE_COUNT,
-    fields: (await config.getNumber('MAX_UPLOAD_FIELD_COUNT')) ?? DEFAULT_MAX_UPLOAD_FIELD_COUNT,
-    fieldSize: (await config.getNumber('MAX_UPLOAD_FIELD_SIZE_BYTES')) ?? DEFAULT_MAX_UPLOAD_FIELD_SIZE_BYTES
+    fileSize: await positiveNumberOrDefault('MAX_UPLOAD_FILE_SIZE_BYTES', DEFAULT_MAX_UPLOAD_FILE_SIZE_BYTES),
+    files: await positiveNumberOrDefault('MAX_UPLOAD_FILE_COUNT', DEFAULT_MAX_UPLOAD_FILE_COUNT),
+    fields: await positiveNumberOrDefault('MAX_UPLOAD_FIELD_COUNT', DEFAULT_MAX_UPLOAD_FIELD_COUNT),
+    fieldSize: await positiveNumberOrDefault('MAX_UPLOAD_FIELD_SIZE_BYTES', DEFAULT_MAX_UPLOAD_FIELD_SIZE_BYTES)
   }
 
   // Error handler middleware

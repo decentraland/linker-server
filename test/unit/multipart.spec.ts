@@ -1,4 +1,5 @@
 import type { IHttpServerComponent } from '@dcl/core-commons'
+import { InvalidRequestError } from '@dcl/http-commons'
 import { type FormDataContext, multipartParserWrapper } from '../../src/util/multipart'
 
 describe('when parsing a multipart request with multipartParserWrapper', () => {
@@ -41,7 +42,7 @@ describe('when parsing a multipart request with multipartParserWrapper', () => {
       const handler = jest.fn()
       const ctx = buildContext(JSON.stringify({ not: 'multipart' }), { 'content-type': 'application/json' })
 
-      await expect(multipartParserWrapper(handler)(ctx)).rejects.toBeDefined()
+      await expect(multipartParserWrapper(handler)(ctx)).rejects.toBeInstanceOf(InvalidRequestError)
       expect(handler).not.toHaveBeenCalled()
     })
   })

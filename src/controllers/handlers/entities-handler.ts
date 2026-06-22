@@ -83,7 +83,16 @@ export async function entitiesHandler(
     const uploadResult = await linker.uploadToCatalyst(entityId, formData.files)
 
     if (!uploadResult.success) {
-      throw new Error(uploadResult.error ?? 'Upload failed')
+      // Reflect the catalyst's status (e.g. a 400 "entity already deployed") back to the
+      // client instead of collapsing every upstream rejection into a 500.
+      const status = uploadResult.status ?? 500
+      const message = uploadResult.error ?? 'Upload failed'
+      logger.warn('Catalyst rejected the entity upload', { status, error: message })
+      metrics.increment('linker_entity_upload_counter', { status: 'error' })
+      return {
+        status,
+        body: { error: 'Catalyst upload failed', message }
+      }
     }
 
     metrics.increment('linker_entity_upload_counter', { status: 'success' })

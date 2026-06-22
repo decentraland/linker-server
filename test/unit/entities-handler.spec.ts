@@ -342,13 +342,60 @@ describe('when calling the entities handler', () => {
       } as never)
     })
 
-    it('should return status 500 with the catalyst error message', () => {
+    it('should fall back to status 500 with the catalyst error message when no status is provided', () => {
       expect(result.status).toBe(500)
-      expect(result.body).toEqual({ error: 'Internal server error', message: 'Catalyst rejected the upload' })
+      expect(result.body).toEqual({ error: 'Catalyst upload failed', message: 'Catalyst rejected the upload' })
     })
 
     it('should increment the error upload counter', () => {
       expect(mockMetrics.increment).toHaveBeenCalledWith('linker_entity_upload_counter', { status: 'error' })
+    })
+  })
+
+  describe('and the upload to catalyst fails with a specific status', () => {
+    let result: IHttpServerComponent.IResponse
+
+    beforeEach(async () => {
+      mockAuthorizations = createAuthorizationsMockedComponent()
+      mockAuthorizations.checkAuthorization.mockResolvedValueOnce({ authorized: true, parcels: ['0,0'] })
+      mockAuthorizations.checkParcelAccess.mockResolvedValueOnce({ hasAccess: true, missingParcels: [] })
+
+      mockLinker = createLinkerMockedComponent()
+      mockLinker.validateAuthChain.mockResolvedValueOnce({
+        ok: true,
+        signerAddress: '0xauthorized',
+        signedEntityId: 'bafkreiexample'
+      })
+      mockLinker.uploadToCatalyst.mockResolvedValueOnce({
+        success: false,
+        status: 400,
+        error: 'The entity was already deployed'
+      })
+
+      const entityContent = JSON.stringify({ pointers: ['0,0'] })
+
+      result = await entitiesHandler({
+        formData: {
+          fields: {
+            ...createAuthChainFields([{ type: 'SIGNER', payload: '0xauthorized' }]),
+            entityId: { fieldname: 'entityId', value: 'bafkreiexample' }
+          },
+          files: {
+            bafkreiexample: { fieldname: 'bafkreiexample', value: Buffer.from(entityContent) }
+          }
+        },
+        components: {
+          logs: mockLogs,
+          metrics: mockMetrics,
+          authorizations: mockAuthorizations,
+          linker: mockLinker
+        }
+      } as never)
+    })
+
+    it('should propagate the catalyst status to the client instead of a 500', () => {
+      expect(result.status).toBe(400)
+      expect(result.body).toEqual({ error: 'Catalyst upload failed', message: 'The entity was already deployed' })
     })
   })
 

@@ -53,12 +53,19 @@ export function multipartParserWrapper<U, Ctx extends FormDataContext<U>, T exte
       throw new InvalidRequestError('Missing multipart request body')
     }
 
-    const formDataParser = busboy({
-      headers: {
-        'content-type': ctx.request.headers.get('content-type') || undefined
-      },
-      limits: options.limits
-    })
+    let formDataParser: ReturnType<typeof busboy>
+    try {
+      // busboy throws synchronously for an unsupported content-type or a
+      // multipart body with no boundary — both are client errors, not 500s.
+      formDataParser = busboy({
+        headers: {
+          'content-type': ctx.request.headers.get('content-type') || undefined
+        },
+        limits: options.limits
+      })
+    } catch (err) {
+      throw new InvalidRequestError(err instanceof Error ? err.message : 'Invalid multipart request')
+    }
 
     const fields: Record<string, Field> = {}
     const files: Record<string, File> = {}
