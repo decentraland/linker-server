@@ -1,10 +1,10 @@
-import { Router } from '@well-known-components/http-server'
-import { multipartParserWrapper } from '@well-known-components/multipart-wrapper'
-import { errorHandler } from '@dcl/platform-server-commons'
+import { errorHandler } from '@dcl/http-commons'
+import { Router } from '@dcl/http-server'
 import { aboutHandler } from './handlers/about-handler'
 import { availableContentHandler } from './handlers/available-content-handler'
 import { entitiesHandler } from './handlers/entities-handler'
 import { pingHandler } from './handlers/ping-handler'
+import { multipartParserWrapper } from '../util/multipart'
 import type { GlobalContext } from '../types'
 
 // We return the entire router because it will be easier to test than a whole server

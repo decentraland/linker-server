@@ -1,6 +1,6 @@
-import type { IHttpServerComponent } from '@well-known-components/interfaces'
+import type { IHttpServerComponent } from '@dcl/core-commons'
 import { isErrorWithMessage } from '@dcl/core-commons'
-import { InvalidRequestError } from '@dcl/platform-server-commons'
+import { InvalidRequestError } from '@dcl/http-commons'
 import { parseAuthChainFromFields } from '../../util/auth-chain'
 import { ForbiddenError } from '../errors'
 import type { FormHandlerContextWithPath } from '../../types'

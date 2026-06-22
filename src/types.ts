@@ -1,18 +1,16 @@
 import type {
   IBaseComponent,
   IConfigComponent,
-  IFetchComponent,
-  IHttpServerComponent,
   ILoggerComponent,
   IMetricsComponent
 } from '@well-known-components/interfaces'
-import type { FormDataContext } from '@well-known-components/multipart-wrapper'
-import type { ICacheStorageComponent } from '@dcl/core-commons'
+import type { ICacheStorageComponent, IFetchComponent, IHttpServerComponent } from '@dcl/core-commons'
 import type { IJobComponent } from '@dcl/job-component'
 import type { ISecretsComponent } from './adapters/secrets'
 import type { IAuthorizationsComponent } from './logic/authorizations'
 import type { ILinkerComponent } from './logic/linker'
 import type { metricDeclarations } from './metrics'
+import type { FormDataContext } from './util/multipart'
 
 export interface GlobalContext {
   components: BaseComponents

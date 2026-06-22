@@ -1,4 +1,5 @@
-import type { IHttpServerComponent, ILoggerComponent, IMetricsComponent } from '@well-known-components/interfaces'
+import type { ILoggerComponent, IMetricsComponent } from '@well-known-components/interfaces'
+import type { IHttpServerComponent } from '@dcl/core-commons'
 import { entitiesHandler } from '../../src/controllers/handlers/entities-handler'
 import { createAuthorizationsMockedComponent } from '../mocks/authorizations-component-mock'
 import { createLinkerMockedComponent } from '../mocks/linker-component-mock'
