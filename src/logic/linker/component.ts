@@ -11,7 +11,7 @@ import type { ISecretsComponent } from '../../adapters/secrets'
 // Catalyst deployments accept an optional 10-minute window plus the custom origin/timeout
 // headers the linker has always sent.
 const UPLOAD_TIMEOUT_MS = 10 * 60 * 1000
-const UPLOAD_HEADERS = { 'x-upload-origin': 'dcl_linker', 'X-Extend-CF-Timeout': '600' }
+const UPLOAD_HEADERS = Object.freeze({ 'x-upload-origin': 'dcl_linker', 'X-Extend-CF-Timeout': '600' })
 
 /**
  * Creates the Linker component
@@ -88,8 +88,8 @@ export async function createLinkerComponent(components: {
       const filesMap = new Map<string, Uint8Array>()
       for (const [filename, file] of Object.entries(files)) {
         filesMap.set(filename, file.value)
-        logger.debug(`Appending file as ${filename}`)
       }
+      logger.debug('Prepared files for deployment', { fileCount: filesMap.size })
 
       logger.info('Uploading to Catalyst', { catalystDomain, entityId })
 
@@ -107,7 +107,17 @@ export async function createLinkerComponent(components: {
         return { success: false, status: httpError.status, error: httpError.message }
       }
 
-      const ret = await response.json()
+      // The deploy succeeded (2xx). Parse the JSON body when present, but don't fail a
+      // successful upload just because the body is empty or not valid JSON.
+      const rawBody = await response.text()
+      let ret: unknown = rawBody
+      if (rawBody) {
+        try {
+          ret = JSON.parse(rawBody)
+        } catch {
+          ret = rawBody
+        }
+      }
       logger.info('Catalyst post response', { response: JSON.stringify(ret) })
 
       return { success: true, response: ret }

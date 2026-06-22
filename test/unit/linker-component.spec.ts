@@ -143,7 +143,10 @@ describe('when using the linker component', () => {
 
       beforeEach(() => {
         catalystResponse = { createdAt: Date.now() }
-        deployMock.mockResolvedValueOnce({ ok: true, json: jest.fn().mockResolvedValue(catalystResponse) })
+        deployMock.mockResolvedValueOnce({
+          ok: true,
+          text: jest.fn().mockResolvedValue(JSON.stringify(catalystResponse))
+        })
       })
 
       it('should return success true with the catalyst response', async () => {
@@ -177,6 +180,17 @@ describe('when using the linker component', () => {
       it('should get the secret with the configured secret ID', async () => {
         await component.uploadToCatalyst(entityId, files)
         expect(mockSecrets.getSecret).toHaveBeenCalledWith(TEST_SECRET_ID)
+      })
+    })
+
+    describe('and the upload succeeds with an empty response body', () => {
+      beforeEach(() => {
+        deployMock.mockResolvedValueOnce({ ok: true, text: jest.fn().mockResolvedValue('') })
+      })
+
+      it('should still report success rather than failing on the empty body', async () => {
+        const result = await component.uploadToCatalyst(entityId, files)
+        expect(result.success).toBe(true)
       })
     })
 

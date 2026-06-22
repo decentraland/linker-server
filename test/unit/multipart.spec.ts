@@ -45,4 +45,29 @@ describe('when parsing a multipart request with multipartParserWrapper', () => {
       expect(handler).not.toHaveBeenCalled()
     })
   })
+
+  describe('and the request has no body', () => {
+    it('should reject without invoking the handler', async () => {
+      const handler = jest.fn()
+      const ctx = {
+        request: new Request('http://localhost/content/entities', { method: 'GET' })
+      } as unknown as IHttpServerComponent.DefaultContext<unknown>
+
+      await expect(multipartParserWrapper(handler)(ctx)).rejects.toThrow('Missing multipart request body')
+      expect(handler).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('and a file exceeds the configured size limit', () => {
+    it('should reject without invoking the handler', async () => {
+      const form = new FormData()
+      form.append('bigfile', new Blob([Buffer.alloc(1024)]), 'bigfile')
+      const handler = jest.fn()
+
+      await expect(multipartParserWrapper(handler, { limits: { fileSize: 8 } })(buildContext(form))).rejects.toThrow(
+        'exceeds the maximum allowed size'
+      )
+      expect(handler).not.toHaveBeenCalled()
+    })
+  })
 })
