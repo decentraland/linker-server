@@ -63,7 +63,9 @@ export function multipartParserWrapper<U, Ctx extends FormDataContext<U>, T exte
     formDataParser.on('file', function (name, stream, info) {
       const chunks: Buffer[] = []
       stream.on('data', (data) => chunks.push(data))
-      stream.on('error', (err) => console.error('stream error', err))
+      // Propagate file-stream errors to busboy so the `finished` promise rejects
+      // instead of silently dropping the file from the parsed result.
+      stream.on('error', (err) => formDataParser.destroy(err))
       stream.on('end', () => {
         files[name] = { ...info, fieldname: name, value: Buffer.concat(chunks) }
       })
