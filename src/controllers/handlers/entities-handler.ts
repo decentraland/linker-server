@@ -69,10 +69,21 @@ export async function entitiesHandler(
     }
 
     const entityContent = entityFile.value.toString('utf-8')
-    const entity = JSON.parse(entityContent)
+
+    let entity: unknown
+    try {
+      entity = JSON.parse(entityContent)
+    } catch {
+      throw new InvalidRequestError('Entity file is not valid JSON')
+    }
+
+    const pointers = (entity as { pointers?: unknown } | null)?.pointers
+    if (!Array.isArray(pointers)) {
+      throw new InvalidRequestError('Entity is missing a valid pointers array')
+    }
 
     // Check parcel access
-    const accessResult = await authorizations.checkParcelAccess(signerAddress, entity.pointers)
+    const accessResult = await authorizations.checkParcelAccess(signerAddress, pointers as string[])
     if (!accessResult.hasAccess) {
       throw new ForbiddenError(
         `Missing access for ${accessResult.missingParcels.length} parcels:\n${accessResult.missingParcels.join('; ')}`

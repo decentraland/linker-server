@@ -305,6 +305,93 @@ describe('when calling the entities handler', () => {
     })
   })
 
+  describe('and the entity file is not valid JSON', () => {
+    let result: IHttpServerComponent.IResponse
+
+    beforeEach(async () => {
+      mockAuthorizations = createAuthorizationsMockedComponent()
+      mockAuthorizations.checkAuthorization.mockResolvedValueOnce({ authorized: true, parcels: ['0,0'] })
+
+      mockLinker = createLinkerMockedComponent()
+      mockLinker.validateAuthChain.mockResolvedValueOnce({
+        ok: true,
+        signerAddress: '0xauthorized',
+        signedEntityId: 'bafkreiexample'
+      })
+
+      result = await entitiesHandler({
+        formData: {
+          fields: {
+            ...createAuthChainFields([{ type: 'SIGNER', payload: '0xauthorized' }]),
+            entityId: { fieldname: 'entityId', value: 'bafkreiexample' }
+          },
+          files: {
+            bafkreiexample: { fieldname: 'bafkreiexample', value: Buffer.from('not valid json{') }
+          }
+        },
+        components: {
+          logs: mockLogs,
+          metrics: mockMetrics,
+          authorizations: mockAuthorizations,
+          linker: mockLinker
+        }
+      } as never)
+    })
+
+    it('should return status 400 with an invalid JSON error', () => {
+      expect(result.status).toBe(400)
+      expect(result.body).toEqual({ error: 'Bad request', message: 'Entity file is not valid JSON' })
+    })
+
+    it('should not upload to the catalyst', () => {
+      expect(mockLinker.uploadToCatalyst).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('and the entity has no pointers array', () => {
+    let result: IHttpServerComponent.IResponse
+
+    beforeEach(async () => {
+      mockAuthorizations = createAuthorizationsMockedComponent()
+      mockAuthorizations.checkAuthorization.mockResolvedValueOnce({ authorized: true, parcels: ['0,0'] })
+
+      mockLinker = createLinkerMockedComponent()
+      mockLinker.validateAuthChain.mockResolvedValueOnce({
+        ok: true,
+        signerAddress: '0xauthorized',
+        signedEntityId: 'bafkreiexample'
+      })
+
+      result = await entitiesHandler({
+        formData: {
+          fields: {
+            ...createAuthChainFields([{ type: 'SIGNER', payload: '0xauthorized' }]),
+            entityId: { fieldname: 'entityId', value: 'bafkreiexample' }
+          },
+          files: {
+            bafkreiexample: { fieldname: 'bafkreiexample', value: Buffer.from('{"foo":"bar"}') }
+          }
+        },
+        components: {
+          logs: mockLogs,
+          metrics: mockMetrics,
+          authorizations: mockAuthorizations,
+          linker: mockLinker
+        }
+      } as never)
+    })
+
+    it('should return status 400 with a missing pointers error', () => {
+      expect(result.status).toBe(400)
+      expect(result.body).toEqual({ error: 'Bad request', message: 'Entity is missing a valid pointers array' })
+    })
+
+    it('should not check parcel access or upload to the catalyst', () => {
+      expect(mockAuthorizations.checkParcelAccess).not.toHaveBeenCalled()
+      expect(mockLinker.uploadToCatalyst).not.toHaveBeenCalled()
+    })
+  })
+
   describe('and the upload to catalyst fails', () => {
     let result: IHttpServerComponent.IResponse
 
