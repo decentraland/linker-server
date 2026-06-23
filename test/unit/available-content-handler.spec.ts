@@ -1,9 +1,5 @@
-import type {
-  IConfigComponent,
-  IFetchComponent,
-  IHttpServerComponent,
-  ILoggerComponent
-} from '@well-known-components/interfaces'
+import type { IConfigComponent, ILoggerComponent } from '@well-known-components/interfaces'
+import type { IFetchComponent, IHttpServerComponent } from '@dcl/core-commons'
 import { availableContentHandler } from '../../src/controllers/handlers/available-content-handler'
 import { createConfigMockedComponent } from '../mocks/config-component-mock'
 import { createFetcherMockedComponent } from '../mocks/fetcher-component-mock'

@@ -1,4 +1,5 @@
-import type { IHttpServerComponent, ILoggerComponent, IMetricsComponent } from '@well-known-components/interfaces'
+import type { ILoggerComponent, IMetricsComponent } from '@well-known-components/interfaces'
+import type { IHttpServerComponent } from '@dcl/core-commons'
 import { entitiesHandler } from '../../src/controllers/handlers/entities-handler'
 import { createAuthorizationsMockedComponent } from '../mocks/authorizations-component-mock'
 import { createLinkerMockedComponent } from '../mocks/linker-component-mock'
@@ -304,6 +305,93 @@ describe('when calling the entities handler', () => {
     })
   })
 
+  describe('and the entity file is not valid JSON', () => {
+    let result: IHttpServerComponent.IResponse
+
+    beforeEach(async () => {
+      mockAuthorizations = createAuthorizationsMockedComponent()
+      mockAuthorizations.checkAuthorization.mockResolvedValueOnce({ authorized: true, parcels: ['0,0'] })
+
+      mockLinker = createLinkerMockedComponent()
+      mockLinker.validateAuthChain.mockResolvedValueOnce({
+        ok: true,
+        signerAddress: '0xauthorized',
+        signedEntityId: 'bafkreiexample'
+      })
+
+      result = await entitiesHandler({
+        formData: {
+          fields: {
+            ...createAuthChainFields([{ type: 'SIGNER', payload: '0xauthorized' }]),
+            entityId: { fieldname: 'entityId', value: 'bafkreiexample' }
+          },
+          files: {
+            bafkreiexample: { fieldname: 'bafkreiexample', value: Buffer.from('not valid json{') }
+          }
+        },
+        components: {
+          logs: mockLogs,
+          metrics: mockMetrics,
+          authorizations: mockAuthorizations,
+          linker: mockLinker
+        }
+      } as never)
+    })
+
+    it('should return status 400 with an invalid JSON error', () => {
+      expect(result.status).toBe(400)
+      expect(result.body).toEqual({ error: 'Bad request', message: 'Entity file is not valid JSON' })
+    })
+
+    it('should not upload to the catalyst', () => {
+      expect(mockLinker.uploadToCatalyst).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('and the entity has no pointers array', () => {
+    let result: IHttpServerComponent.IResponse
+
+    beforeEach(async () => {
+      mockAuthorizations = createAuthorizationsMockedComponent()
+      mockAuthorizations.checkAuthorization.mockResolvedValueOnce({ authorized: true, parcels: ['0,0'] })
+
+      mockLinker = createLinkerMockedComponent()
+      mockLinker.validateAuthChain.mockResolvedValueOnce({
+        ok: true,
+        signerAddress: '0xauthorized',
+        signedEntityId: 'bafkreiexample'
+      })
+
+      result = await entitiesHandler({
+        formData: {
+          fields: {
+            ...createAuthChainFields([{ type: 'SIGNER', payload: '0xauthorized' }]),
+            entityId: { fieldname: 'entityId', value: 'bafkreiexample' }
+          },
+          files: {
+            bafkreiexample: { fieldname: 'bafkreiexample', value: Buffer.from('{"foo":"bar"}') }
+          }
+        },
+        components: {
+          logs: mockLogs,
+          metrics: mockMetrics,
+          authorizations: mockAuthorizations,
+          linker: mockLinker
+        }
+      } as never)
+    })
+
+    it('should return status 400 with a missing pointers error', () => {
+      expect(result.status).toBe(400)
+      expect(result.body).toEqual({ error: 'Bad request', message: 'Entity is missing a valid pointers array' })
+    })
+
+    it('should not check parcel access or upload to the catalyst', () => {
+      expect(mockAuthorizations.checkParcelAccess).not.toHaveBeenCalled()
+      expect(mockLinker.uploadToCatalyst).not.toHaveBeenCalled()
+    })
+  })
+
   describe('and the upload to catalyst fails', () => {
     let result: IHttpServerComponent.IResponse
 
@@ -341,13 +429,103 @@ describe('when calling the entities handler', () => {
       } as never)
     })
 
-    it('should return status 500 with the catalyst error message', () => {
+    it('should fall back to status 500 with the catalyst error message when no status is provided', () => {
       expect(result.status).toBe(500)
-      expect(result.body).toEqual({ error: 'Internal server error', message: 'Catalyst rejected the upload' })
+      expect(result.body).toEqual({ error: 'Catalyst upload failed', message: 'Catalyst rejected the upload' })
     })
 
     it('should increment the error upload counter', () => {
       expect(mockMetrics.increment).toHaveBeenCalledWith('linker_entity_upload_counter', { status: 'error' })
+    })
+  })
+
+  describe('and the upload to catalyst fails with a specific status', () => {
+    let result: IHttpServerComponent.IResponse
+
+    beforeEach(async () => {
+      mockAuthorizations = createAuthorizationsMockedComponent()
+      mockAuthorizations.checkAuthorization.mockResolvedValueOnce({ authorized: true, parcels: ['0,0'] })
+      mockAuthorizations.checkParcelAccess.mockResolvedValueOnce({ hasAccess: true, missingParcels: [] })
+
+      mockLinker = createLinkerMockedComponent()
+      mockLinker.validateAuthChain.mockResolvedValueOnce({
+        ok: true,
+        signerAddress: '0xauthorized',
+        signedEntityId: 'bafkreiexample'
+      })
+      mockLinker.uploadToCatalyst.mockResolvedValueOnce({
+        success: false,
+        status: 400,
+        error: 'The entity was already deployed'
+      })
+
+      const entityContent = JSON.stringify({ pointers: ['0,0'] })
+
+      result = await entitiesHandler({
+        formData: {
+          fields: {
+            ...createAuthChainFields([{ type: 'SIGNER', payload: '0xauthorized' }]),
+            entityId: { fieldname: 'entityId', value: 'bafkreiexample' }
+          },
+          files: {
+            bafkreiexample: { fieldname: 'bafkreiexample', value: Buffer.from(entityContent) }
+          }
+        },
+        components: {
+          logs: mockLogs,
+          metrics: mockMetrics,
+          authorizations: mockAuthorizations,
+          linker: mockLinker
+        }
+      } as never)
+    })
+
+    it('should propagate the catalyst status to the client instead of a 500', () => {
+      expect(result.status).toBe(400)
+      expect(result.body).toEqual({ error: 'Catalyst upload failed', message: 'The entity was already deployed' })
+    })
+  })
+
+  describe('and the upload fails with an out-of-range status', () => {
+    let result: IHttpServerComponent.IResponse
+
+    beforeEach(async () => {
+      mockAuthorizations = createAuthorizationsMockedComponent()
+      mockAuthorizations.checkAuthorization.mockResolvedValueOnce({ authorized: true, parcels: ['0,0'] })
+      mockAuthorizations.checkParcelAccess.mockResolvedValueOnce({ hasAccess: true, missingParcels: [] })
+
+      mockLinker = createLinkerMockedComponent()
+      mockLinker.validateAuthChain.mockResolvedValueOnce({
+        ok: true,
+        signerAddress: '0xauthorized',
+        signedEntityId: 'bafkreiexample'
+      })
+      // A thrown error could carry an arbitrary numeric status (e.g. 1000) via fromUnknown.
+      mockLinker.uploadToCatalyst.mockResolvedValueOnce({ success: false, status: 1000, error: 'weird error' })
+
+      const entityContent = JSON.stringify({ pointers: ['0,0'] })
+
+      result = await entitiesHandler({
+        formData: {
+          fields: {
+            ...createAuthChainFields([{ type: 'SIGNER', payload: '0xauthorized' }]),
+            entityId: { fieldname: 'entityId', value: 'bafkreiexample' }
+          },
+          files: {
+            bafkreiexample: { fieldname: 'bafkreiexample', value: Buffer.from(entityContent) }
+          }
+        },
+        components: {
+          logs: mockLogs,
+          metrics: mockMetrics,
+          authorizations: mockAuthorizations,
+          linker: mockLinker
+        }
+      } as never)
+    })
+
+    it('should clamp an invalid status to 500 rather than emitting an invalid res.statusCode', () => {
+      expect(result.status).toBe(500)
     })
   })
 

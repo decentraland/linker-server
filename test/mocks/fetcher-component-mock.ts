@@ -1,4 +1,4 @@
-import type { IFetchComponent } from '@well-known-components/interfaces'
+import type { IFetchComponent } from '@dcl/core-commons'
 
 export function createFetcherMockedComponent(
   partial?: Partial<jest.Mocked<IFetchComponent>>

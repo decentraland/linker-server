@@ -1,6 +1,6 @@
-import type { IHttpServerComponent } from '@well-known-components/interfaces'
+import type { IHttpServerComponent } from '@dcl/core-commons'
 import { isErrorWithMessage } from '@dcl/core-commons'
-import { InvalidRequestError } from '@dcl/platform-server-commons'
+import { InvalidRequestError } from '@dcl/http-commons'
 import { parseAuthChainFromFields } from '../../util/auth-chain'
 import { ForbiddenError } from '../errors'
 import type { FormHandlerContextWithPath } from '../../types'
@@ -69,10 +69,21 @@ export async function entitiesHandler(
     }
 
     const entityContent = entityFile.value.toString('utf-8')
-    const entity = JSON.parse(entityContent)
+
+    let entity: unknown
+    try {
+      entity = JSON.parse(entityContent)
+    } catch {
+      throw new InvalidRequestError('Entity file is not valid JSON')
+    }
+
+    const pointers = (entity as { pointers?: unknown } | null)?.pointers
+    if (!Array.isArray(pointers)) {
+      throw new InvalidRequestError('Entity is missing a valid pointers array')
+    }
 
     // Check parcel access
-    const accessResult = await authorizations.checkParcelAccess(signerAddress, entity.pointers)
+    const accessResult = await authorizations.checkParcelAccess(signerAddress, pointers as string[])
     if (!accessResult.hasAccess) {
       throw new ForbiddenError(
         `Missing access for ${accessResult.missingParcels.length} parcels:\n${accessResult.missingParcels.join('; ')}`
@@ -83,7 +94,25 @@ export async function entitiesHandler(
     const uploadResult = await linker.uploadToCatalyst(entityId, formData.files)
 
     if (!uploadResult.success) {
-      throw new Error(uploadResult.error ?? 'Upload failed')
+      // Reflect the catalyst's status (e.g. a 400 "entity already deployed") back to the
+      // client instead of collapsing every upstream rejection into a 500. Guard against a
+      // non-HTTP status (a thrown error can carry an arbitrary numeric `status`), which would
+      // make the server throw a RangeError when writing res.statusCode.
+      const proposedStatus = uploadResult.status
+      const status =
+        typeof proposedStatus === 'number' &&
+        Number.isInteger(proposedStatus) &&
+        proposedStatus >= 400 &&
+        proposedStatus <= 599
+          ? proposedStatus
+          : 500
+      const message = uploadResult.error ?? 'Upload failed'
+      logger.warn('Catalyst rejected the entity upload', { status, error: message })
+      metrics.increment('linker_entity_upload_counter', { status: 'error' })
+      return {
+        status,
+        body: { error: 'Catalyst upload failed', message }
+      }
     }
 
     metrics.increment('linker_entity_upload_counter', { status: 'success' })

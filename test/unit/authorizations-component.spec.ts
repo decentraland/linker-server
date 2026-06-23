@@ -1,4 +1,5 @@
-import type { IConfigComponent, IFetchComponent, ILoggerComponent } from '@well-known-components/interfaces'
+import type { IConfigComponent, ILoggerComponent } from '@well-known-components/interfaces'
+import type { IFetchComponent } from '@dcl/core-commons'
 import type { LinkerAuthorization } from '@dcl/schemas'
 import { createAuthorizationsComponent } from '../../src/logic/authorizations'
 import { createConfigMockedComponent } from '../mocks/config-component-mock'
